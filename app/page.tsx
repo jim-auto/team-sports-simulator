@@ -6,10 +6,11 @@ import {
   BASEBALL_DATA_SEASON,
   BASEBALL_DATA_SOURCE,
   BASEBALL_ERAS,
+  BASEBALL_PACIFIC_TEAMS,
   BASEBALL_SOURCE_TEAMS
 } from "@/lib/engine/baseball/playerPool";
 import { baseballEngine } from "@/lib/engine/baseball/baseballEngine";
-import { simulateNpbMiniSeason } from "@/lib/engine/baseball/leagueSimulator";
+import { simulateNpbSeason } from "@/lib/engine/baseball/leagueSimulator";
 import { createRandomBaseballTeam } from "@/lib/engine/baseball/randomTeam";
 import type { BaseballHitter, BaseballPitcher, PlayerEra } from "@/lib/models/player";
 import type { BaseballTeam } from "@/lib/models/team";
@@ -33,7 +34,7 @@ type SelectedPlayer = {
 };
 
 const defaultTeamA = BASEBALL_SOURCE_TEAMS[0];
-const defaultTeamB = BASEBALL_SOURCE_TEAMS[2];
+const defaultTeamB = BASEBALL_PACIFIC_TEAMS[0];
 
 const initialTeamA = createRandomBaseballTeam({
   seed: "initial-a",
@@ -729,9 +730,9 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
       <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-xl font-bold">リーグ戦 + 日本シリーズ</h2>
+            <h2 className="text-xl font-bold">12球団リーグ戦 + CS + 日本シリーズ</h2>
             <p className="text-sm text-slate-600">
-              各リーグ {result.gamesPerCard} 試合カード / 優勝: {result.champion}
+              同一リーグ各カード {result.gamesPerCard} 試合 / 優勝: {result.champion}
             </p>
           </div>
           <div className="rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-950">
@@ -776,6 +777,43 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-5">
+          <h3 className="font-semibold">クライマックスシリーズ</h3>
+          <div className="mt-3 grid gap-3 xl:grid-cols-2">
+            {result.climaxSeries.map((round) => (
+              <div key={round.name} className="rounded-md border border-slate-200 p-3">
+                <div className="flex flex-col gap-1 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="font-semibold">{round.name}</div>
+                    <div className="text-sm text-slate-500">
+                      {round.series.teamA}
+                      {round.teamASeed ? ` (${round.teamASeed}位)` : ""} vs {round.series.teamB}
+                      {round.teamBSeed ? ` (${round.teamBSeed}位)` : ""}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-emerald-700">
+                    勝者: {round.winner}
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm">
+                  <div>
+                    <div className="text-slate-500">{round.series.teamA}</div>
+                    <div className="text-2xl font-bold">{round.series.winsA}勝</div>
+                  </div>
+                  <div className="text-center font-semibold text-slate-500">
+                    {round.series.games}試合
+                  </div>
+                  <div className="text-right">
+                    <div className="text-slate-500">{round.series.teamB}</div>
+                    <div className="text-2xl font-bold">{round.series.winsB}勝</div>
+                  </div>
+                </div>
+                {round.note && <p className="mt-2 text-xs text-slate-500">{round.note}</p>}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="mt-5 rounded-md border border-slate-200 p-4">
@@ -983,7 +1021,7 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      const result = simulateNpbMiniSeason({
+      const result = simulateNpbSeason({
         seed,
         gamesPerCard: leagueGamesPerCard
       });
@@ -1047,7 +1085,7 @@ export default function Home() {
                   onChange={(event) => setLeagueGamesPerCard(Number(event.target.value))}
                   className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2"
                 >
-                  <option value={6}>各カード6試合</option>
+                  <option value={6}>各カード6試合（短縮）</option>
                   <option value={12}>各カード12試合</option>
                   <option value={24}>各カード24試合</option>
                 </select>
@@ -1086,7 +1124,7 @@ export default function Home() {
                 disabled={disabled || loading}
                 className="rounded-md bg-emerald-700 px-5 py-2 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
-                リーグ戦から日本シリーズ
+                12球団リーグ戦から日本シリーズ
               </button>
             </div>
             {disabled && (

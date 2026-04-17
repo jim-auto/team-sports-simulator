@@ -4,14 +4,44 @@ import type {
   PlayerEra,
   PlayerTeamStint
 } from "@/lib/models/player";
+import {
+  EXTRA_RAW_HITTERS,
+  EXTRA_RAW_PITCHERS
+} from "@/lib/engine/baseball/npb2025ExpansionData";
 
 export const BASEBALL_ERAS: PlayerEra[] = ["2020s"];
 
 export const BASEBALL_SOURCE_TEAMS = [
   "阪神タイガース",
   "横浜DeNAベイスターズ",
+  "読売ジャイアンツ",
+  "中日ドラゴンズ",
+  "広島東洋カープ",
+  "東京ヤクルトスワローズ",
   "福岡ソフトバンクホークス",
-  "北海道日本ハムファイターズ"
+  "北海道日本ハムファイターズ",
+  "オリックス・バファローズ",
+  "東北楽天ゴールデンイーグルス",
+  "埼玉西武ライオンズ",
+  "千葉ロッテマリーンズ"
+] as const;
+
+export const BASEBALL_CENTRAL_TEAMS = [
+  "阪神タイガース",
+  "横浜DeNAベイスターズ",
+  "読売ジャイアンツ",
+  "中日ドラゴンズ",
+  "広島東洋カープ",
+  "東京ヤクルトスワローズ"
+] as const;
+
+export const BASEBALL_PACIFIC_TEAMS = [
+  "福岡ソフトバンクホークス",
+  "北海道日本ハムファイターズ",
+  "オリックス・バファローズ",
+  "東北楽天ゴールデンイーグルス",
+  "埼玉西武ライオンズ",
+  "千葉ロッテマリーンズ"
 ] as const;
 
 export const BASEBALL_DATA_SEASON = 2025;
@@ -21,8 +51,16 @@ export const BASEBALL_DATA_SOURCE =
 const TEAM_SLUGS: Record<(typeof BASEBALL_SOURCE_TEAMS)[number], string> = {
   "阪神タイガース": "hanshin-tigers",
   "横浜DeNAベイスターズ": "yokohama-dena-baystars",
+  "読売ジャイアンツ": "yomiuri-giants",
+  "中日ドラゴンズ": "chunichi-dragons",
+  "広島東洋カープ": "hiroshima-toyo-carp",
+  "東京ヤクルトスワローズ": "tokyo-yakult-swallows",
   "福岡ソフトバンクホークス": "fukuoka-softbank-hawks",
-  "北海道日本ハムファイターズ": "hokkaido-nipponham-fighters"
+  "北海道日本ハムファイターズ": "hokkaido-nipponham-fighters",
+  "オリックス・バファローズ": "orix-buffaloes",
+  "東北楽天ゴールデンイーグルス": "tohoku-rakuten-golden-eagles",
+  "埼玉西武ライオンズ": "saitama-seibu-lions",
+  "千葉ロッテマリーンズ": "chiba-lotte-marines"
 };
 
 interface RawHitter {
@@ -486,11 +524,21 @@ const RAW_PITCHERS: RawPitcher[] = [
   { team: "北海道日本ハムファイターズ", sourceUrl: "https://npb.jp/bis/2025/stats/idp1_f.html", name: "齋藤 友貴哉", pitchingRole: "中継ぎ", games: 47, wins: 1, losses: 2, battersFaced: 180, innings: 46.2, hitsAllowed: 31, homeRunsAllowed: 1, walks: 14, strikeouts: 37, runsAllowed: 7, earnedRuns: 7, eraValue: 1.35 }
 ];
 
+const ALL_RAW_HITTERS: RawHitter[] = [
+  ...RAW_HITTERS,
+  ...(EXTRA_RAW_HITTERS as unknown as RawHitter[])
+];
+
+const ALL_RAW_PITCHERS: RawPitcher[] = [
+  ...RAW_PITCHERS,
+  ...(EXTRA_RAW_PITCHERS as unknown as RawPitcher[])
+];
+
 export function getBaseballPlayerPool(): {
   hitters: BaseballHitter[];
   pitchers: BaseballPitcher[];
 } {
-  const hitters = RAW_HITTERS.map((player, index): BaseballHitter => {
+  const hitters = ALL_RAW_HITTERS.map((player, index): BaseballHitter => {
     const id = `bb-h-2025-${teamSlug(player.team)}-${index + 1}`;
     const profile = playerProfile(player.name);
     return {
@@ -513,7 +561,7 @@ export function getBaseballPlayerPool(): {
     };
   });
 
-  const pitchers = RAW_PITCHERS.map((player, index): BaseballPitcher => {
+  const pitchers = ALL_RAW_PITCHERS.map((player, index): BaseballPitcher => {
     const id = `bb-p-2025-${teamSlug(player.team)}-${index + 1}`;
     const profile = playerProfile(player.name);
     return {

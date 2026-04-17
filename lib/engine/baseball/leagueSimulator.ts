@@ -1,5 +1,7 @@
 import { baseballEngine } from "@/lib/engine/baseball/baseballEngine";
 import {
+  BASEBALL_CENTRAL_TEAMS,
+  BASEBALL_PACIFIC_TEAMS,
   BASEBALL_SOURCE_TEAMS
 } from "@/lib/engine/baseball/playerPool";
 import { createRandomBaseballTeam } from "@/lib/engine/baseball/randomTeam";
@@ -9,6 +11,7 @@ import type {
   LeagueStanding,
   MatchResult,
   MVPResult,
+  PostseasonRoundResult,
   SeriesResult
 } from "@/lib/models/result";
 import type { BaseballTeam } from "@/lib/models/team";
@@ -23,14 +26,24 @@ interface MutableStanding {
   runsAgainst: number;
 }
 
-const MINI_LEAGUES = [
+interface SeriesOptions {
+  seed: string;
+  seedLabel: string;
+  targetWins: number;
+  maxGames: number;
+  initialWinsA?: number;
+  initialWinsB?: number;
+  includeLog?: boolean;
+}
+
+const NPB_LEAGUES = [
   {
     name: "セントラル・リーグ",
-    teams: [BASEBALL_SOURCE_TEAMS[0], BASEBALL_SOURCE_TEAMS[1]]
+    teams: BASEBALL_CENTRAL_TEAMS
   },
   {
     name: "パシフィック・リーグ",
-    teams: [BASEBALL_SOURCE_TEAMS[2], BASEBALL_SOURCE_TEAMS[3]]
+    teams: BASEBALL_PACIFIC_TEAMS
   }
 ] as const;
 
@@ -142,13 +155,25 @@ function finalizeSeries(series: SeriesResult): SeriesResult {
   };
 }
 
-function simulateBestOfSeven(teamA: BaseballTeam, teamB: BaseballTeam, seed: string): SeriesResult {
+function simulatePostseasonSeries(
+  teamA: BaseballTeam,
+  teamB: BaseballTeam,
+  options: SeriesOptions
+): SeriesResult {
   const series = emptySeriesResult(teamA, teamB);
+  series.winsA = options.initialWinsA ?? 0;
+  series.winsB = options.initialWinsB ?? 0;
 
-  for (let game = 1; game <= 7 && series.winsA < 4 && series.winsB < 4; game += 1) {
+  for (
+    let game = 1;
+    game <= options.maxGames &&
+    series.winsA < options.targetWins &&
+    series.winsB < options.targetWins;
+    game += 1
+  ) {
     const match = baseballEngine.simulateMatch(teamA, teamB, {
-      seed: `${seed}:japan-series:${game}`,
-      includeLog: game === 1
+      seed: `${options.seed}:${options.seedLabel}:${game}`,
+      includeLog: Boolean(options.includeLog && game === 1)
     });
     addSeriesMatch(series, match);
   }
@@ -156,69 +181,152 @@ function simulateBestOfSeven(teamA: BaseballTeam, teamB: BaseballTeam, seed: str
   return finalizeSeries(series);
 }
 
-export function simulateNpbMiniSeason(
+function seriesWinner(series: SeriesResult, defaultWinner: "A" | "B" = "A"): string {
+  if (series.winsA > series.winsB) return series.teamA;
+  if (series.winsB > series.winsA) return series.teamB;
+  return defaultWinner === "A" ? series.teamA : series.teamB;
+}
+
+function requireTeam(teamByName: Map<string, BaseballTeam>, teamName: string): BaseballTeam {
+  const team = teamByName.get(teamName);
+  if (!team) throw new Error(`Missing team for ${teamName}.`);
+  return team;
+}
+
+function simulateLeagueGroup(
+  league: (typeof NPB_LEAGUES)[number],
+  teamByName: Map<string, BaseballTeam>,
+  seed: string,
+  gamesPerCard: number
+): LeagueSeasonGroup {
+  const records = new Map<string, MutableStanding>();
+  const leagueTeams = league.teams.map((teamName) => {
+    const team = requireTeam(teamByName, teamName);
+    records.set(team.name, {
+      leagueName: league.name,
+      team,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      runsFor: 0,
+      runsAgainst: 0
+    });
+    return team;
+  });
+
+  for (let i = 0; i < leagueTeams.length; i += 1) {
+    for (let j = i + 1; j < leagueTeams.length; j += 1) {
+      for (let game = 1; game <= gamesPerCard; game += 1) {
+        const teamA = leagueTeams[i];
+        const teamB = leagueTeams[j];
+        const match = baseballEngine.simulateMatch(teamA, teamB, {
+          seed: `${seed}:regular:${league.name}:${teamA.name}:${teamB.name}:${game}`
+        });
+        applyMatchResult(match, records.get(teamA.name)!, records.get(teamB.name)!);
+      }
+    }
+  }
+
+  return {
+    name: league.name,
+    standings: sortStandings(Array.from(records.values()).map(toStanding))
+  };
+}
+
+function simulateClimaxSeries(
+  leagueGroup: LeagueSeasonGroup,
+  teamByName: Map<string, BaseballTeam>,
+  seed: string
+): { rounds: PostseasonRoundResult[]; winner: BaseballTeam } {
+  const first = requireTeam(teamByName, leagueGroup.standings[0].teamName);
+  const second = requireTeam(teamByName, leagueGroup.standings[1].teamName);
+  const third = requireTeam(teamByName, leagueGroup.standings[2].teamName);
+
+  const firstStage = simulatePostseasonSeries(second, third, {
+    seed,
+    seedLabel: `${leagueGroup.name}:climax-first`,
+    targetWins: 2,
+    maxGames: 3
+  });
+  const firstStageWinnerName = seriesWinner(firstStage, "A");
+  const firstStageWinner = requireTeam(teamByName, firstStageWinnerName);
+  const challengerSeed = firstStageWinner.name === second.name ? 2 : 3;
+
+  const finalStage = simulatePostseasonSeries(first, firstStageWinner, {
+    seed,
+    seedLabel: `${leagueGroup.name}:climax-final`,
+    targetWins: 4,
+    maxGames: 6,
+    initialWinsA: 1
+  });
+  const leagueWinnerName = seriesWinner(finalStage, "A");
+  const leagueWinner = requireTeam(teamByName, leagueWinnerName);
+
+  return {
+    winner: leagueWinner,
+    rounds: [
+      {
+        name: `${leagueGroup.name} CSファーストステージ`,
+        leagueName: leagueGroup.name,
+        stage: "climax-first",
+        teamASeed: 2,
+        teamBSeed: 3,
+        series: firstStage,
+        winner: firstStageWinnerName,
+        note: "2位と3位の3試合制。勝敗が並んだ場合は上位チームを勝者にします。"
+      },
+      {
+        name: `${leagueGroup.name} CSファイナルステージ`,
+        leagueName: leagueGroup.name,
+        stage: "climax-final",
+        teamASeed: 1,
+        teamBSeed: challengerSeed,
+        series: finalStage,
+        winner: leagueWinnerName,
+        note: "1位チームに1勝アドバンテージを付けた6試合制です。"
+      }
+    ]
+  };
+}
+
+export function simulateNpbSeason(
   options: { seed?: string; gamesPerCard?: number } = {}
 ): LeagueSeasonResult {
   const seed = options.seed ?? "league-seed";
   const gamesPerCard = options.gamesPerCard ?? 12;
   const teams = createLeagueTeams(seed);
   const teamByName = new Map(teams.map((team) => [team.name, team]));
-  const leagueGroups: LeagueSeasonGroup[] = [];
 
-  MINI_LEAGUES.forEach((league) => {
-    const records = new Map<string, MutableStanding>();
-    const leagueTeams = league.teams.map((teamName) => {
-      const team = teamByName.get(teamName);
-      if (!team) throw new Error(`Missing team for ${teamName}.`);
-      records.set(team.name, {
-        leagueName: league.name,
-        team,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        runsFor: 0,
-        runsAgainst: 0
-      });
-      return team;
-    });
+  const leagueGroups = NPB_LEAGUES.map((league) =>
+    simulateLeagueGroup(league, teamByName, seed, gamesPerCard)
+  );
 
-    for (let i = 0; i < leagueTeams.length; i += 1) {
-      for (let j = i + 1; j < leagueTeams.length; j += 1) {
-        for (let game = 1; game <= gamesPerCard; game += 1) {
-          const teamA = leagueTeams[i];
-          const teamB = leagueTeams[j];
-          const match = baseballEngine.simulateMatch(teamA, teamB, {
-            seed: `${seed}:${league.name}:${teamA.name}:${teamB.name}:${game}`
-          });
-          applyMatchResult(match, records.get(teamA.name)!, records.get(teamB.name)!);
-        }
-      }
-    }
-
-    leagueGroups.push({
-      name: league.name,
-      standings: sortStandings(Array.from(records.values()).map(toStanding))
-    });
+  const climaxSeries: PostseasonRoundResult[] = [];
+  const leagueChampions = leagueGroups.map((leagueGroup) => {
+    const result = simulateClimaxSeries(leagueGroup, teamByName, seed);
+    climaxSeries.push(...result.rounds);
+    return result.winner;
   });
 
-  const centralWinner = teamByName.get(leagueGroups[0].standings[0].teamName);
-  const pacificWinner = teamByName.get(leagueGroups[1].standings[0].teamName);
-  if (!centralWinner || !pacificWinner) {
-    throw new Error("League winners could not be resolved.");
-  }
-
-  const japanSeries = simulateBestOfSeven(centralWinner, pacificWinner, seed);
-  const champion =
-    japanSeries.winsA >= japanSeries.winsB ? japanSeries.teamA : japanSeries.teamB;
-  const runnerUp =
-    japanSeries.winsA >= japanSeries.winsB ? japanSeries.teamB : japanSeries.teamA;
+  const japanSeries = simulatePostseasonSeries(leagueChampions[0], leagueChampions[1], {
+    seed,
+    seedLabel: "japan-series",
+    targetWins: 4,
+    maxGames: 7,
+    includeLog: true
+  });
+  const champion = seriesWinner(japanSeries, "A");
+  const runnerUp = champion === japanSeries.teamA ? japanSeries.teamB : japanSeries.teamA;
 
   return {
     sport: "baseball",
     gamesPerCard,
     leagues: leagueGroups,
+    climaxSeries,
     japanSeries,
     champion,
     runnerUp
   };
 }
+
+export const simulateNpbMiniSeason = simulateNpbSeason;

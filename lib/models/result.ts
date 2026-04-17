@@ -111,10 +111,22 @@ export interface LeagueSeasonGroup {
   standings: LeagueStanding[];
 }
 
+export interface PostseasonRoundResult {
+  name: string;
+  leagueName?: string;
+  stage: "climax-first" | "climax-final" | "japan-series";
+  teamASeed?: number;
+  teamBSeed?: number;
+  series: SeriesResult;
+  winner: string;
+  note?: string;
+}
+
 export interface LeagueSeasonResult {
   sport: "baseball";
   gamesPerCard: number;
   leagues: LeagueSeasonGroup[];
+  climaxSeries: PostseasonRoundResult[];
   japanSeries: SeriesResult;
   champion: string;
   runnerUp: string;
