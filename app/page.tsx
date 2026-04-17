@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
+  BASEBALL_DATA_SEASON,
+  BASEBALL_DATA_SOURCE,
   BASEBALL_ERAS,
   BASEBALL_SOURCE_TEAMS
 } from "@/lib/engine/baseball/playerPool";
@@ -28,18 +30,21 @@ type SelectedPlayer = {
   teamSide: "A" | "B";
 };
 
+const defaultTeamA = BASEBALL_SOURCE_TEAMS[0];
+const defaultTeamB = BASEBALL_SOURCE_TEAMS[2];
+
 const initialTeamA = createRandomBaseballTeam({
   seed: "initial-a",
   era: "2020s",
-  sourceTeam: "Tokyo Meteors",
-  name: "Tokyo Aces"
+  sourceTeam: defaultTeamA,
+  name: defaultTeamA
 });
 
 const initialTeamB = createRandomBaseballTeam({
   seed: "initial-b",
   era: "2020s",
-  sourceTeam: "Osaka Waves",
-  name: "Osaka Breakers"
+  sourceTeam: defaultTeamB,
+  name: defaultTeamB
 });
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -161,11 +166,11 @@ function TeamEditor({
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
               <th className="py-2 pr-2">#</th>
               <th className="py-2 pr-2">打者</th>
-              <th className="py-2 pr-2">contact</th>
-              <th className="py-2 pr-2">power</th>
-              <th className="py-2 pr-2">fielding</th>
-              <th className="py-2 pr-2">era</th>
-              <th className="py-2 pr-2">source</th>
+              <th className="py-2 pr-2">ミート</th>
+              <th className="py-2 pr-2">長打力</th>
+              <th className="py-2 pr-2">守備</th>
+              <th className="py-2 pr-2">年代</th>
+              <th className="py-2 pr-2">成績元</th>
               <th className="py-2">詳細</th>
             </tr>
           </thead>
@@ -271,7 +276,7 @@ function TeamEditor({
         </div>
         <div>
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            control
+            制球
           </label>
           <input
             type="number"
@@ -292,7 +297,7 @@ function TeamEditor({
         </div>
         <div>
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            stuff
+            球威
           </label>
           <input
             type="number"
@@ -313,7 +318,7 @@ function TeamEditor({
         </div>
         <div>
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            stamina
+            スタミナ
           </label>
           <input
             type="number"
@@ -370,48 +375,53 @@ function AbilityGuide() {
         <div>
           <h2 className="text-xl font-bold">能力モデル</h2>
           <p className="text-sm text-slate-600">
-            現在のMVPでは、打撃・投球・守備を最小限の能力値で試合結果に反映しています。
+            {BASEBALL_DATA_SEASON}年NPB公式戦成績を0-100評価へ変換し、打撃・投球・守備を試合結果に反映しています。
           </p>
         </div>
-        <div className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
-          0-100評価 / seed指定で再現可能
-        </div>
+        <a
+          href={BASEBALL_DATA_SOURCE}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-slate-200"
+        >
+          成績ソース: NPB.jp
+        </a>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <div className="rounded-md border border-slate-200 p-3">
-          <h3 className="font-semibold">contact</h3>
+          <h3 className="font-semibold">ミート contact</h3>
           <p className="mt-1 text-sm text-slate-600">
-            バットに当てる力。相手投手の control と比べてヒット確率を決めます。
+            バットに当てる力。打率、出塁率、三振率、打席数から算出し、相手投手の制球と比べてヒット確率を決めます。
           </p>
         </div>
         <div className="rounded-md border border-slate-200 p-3">
-          <h3 className="font-semibold">power</h3>
+          <h3 className="font-semibold">長打力 power</h3>
           <p className="mt-1 text-sm text-slate-600">
-            長打力。相手投手の stuff と比べて二塁打・本塁打の出やすさを決めます。
+            二塁打・本塁打の出やすさ。長打率、本塁打率、長打本数から算出し、相手投手の球威と比べます。
           </p>
         </div>
         <div className="rounded-md border border-slate-200 p-3">
-          <h3 className="font-semibold">fielding</h3>
+          <h3 className="font-semibold">守備 fielding</h3>
           <p className="mt-1 text-sm text-slate-600">
-            守備力。守備側9人の平均値が高いほど、相手のヒット確率を少し下げます。
+            守備力。MVPでは出場数、走力の目安、守備位置の補正から置いた暫定値で、守備側9人の平均値が高いほど相手のヒット確率を少し下げます。
           </p>
         </div>
         <div className="rounded-md border border-slate-200 p-3">
-          <h3 className="font-semibold">control</h3>
+          <h3 className="font-semibold">制球 control</h3>
           <p className="mt-1 text-sm text-slate-600">
-            制球力。打者の contact に対抗し、アウトを取りやすくします。
+            四球の少なさと防御率から算出。打者のミートに対抗し、アウトを取りやすくします。
           </p>
         </div>
         <div className="rounded-md border border-slate-200 p-3">
-          <h3 className="font-semibold">stuff</h3>
+          <h3 className="font-semibold">球威 stuff</h3>
           <p className="mt-1 text-sm text-slate-600">
-            球威・決め球。打者の power に対抗し、長打を抑えます。
+            三振率、被本塁打率、防御率から算出。打者の長打力に対抗し、長打を抑えます。
           </p>
         </div>
         <div className="rounded-md border border-slate-200 p-3">
-          <h3 className="font-semibold">stamina</h3>
+          <h3 className="font-semibold">スタミナ stamina</h3>
           <p className="mt-1 text-sm text-slate-600">
-            スタミナ。打者を多く相手にすると疲労し、control と stuff が徐々に落ちます。
+            投球回と登板数から算出。打者を多く相手にすると疲労し、制球と球威が徐々に落ちます。
           </p>
         </div>
       </div>
@@ -455,28 +465,40 @@ function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) 
               </p>
               <h2 className="text-2xl font-bold">{player.name}</h2>
               <p className="mt-1 text-sm text-slate-600">
-                現在の起用: {team.name} / 能力基準: {player.sourceTeam} {player.era}
+                現在の起用: {team.name} / 能力基準: {player.dataSeason ?? BASEBALL_DATA_SEASON}年 {player.sourceTeam}
               </p>
             </div>
-            {activeStint && (
-              <div className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
-                {activeStint.statLine}
-              </div>
-            )}
+            <div className="flex flex-col gap-2 md:items-end">
+              {activeStint && (
+                <div className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+                  {activeStint.statLine}
+                </div>
+              )}
+              {player.sourceUrl && (
+                <a
+                  href={player.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-semibold text-emerald-700 hover:text-emerald-900"
+                >
+                  成績ソースを見る
+                </a>
+              )}
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             {isPitcher(player) ? (
               <>
-                <RatingBar label="control" value={player.control} />
-                <RatingBar label="stuff" value={player.stuff} />
-                <RatingBar label="stamina" value={player.stamina} />
+                <RatingBar label="制球 control" value={player.control} />
+                <RatingBar label="球威 stuff" value={player.stuff} />
+                <RatingBar label="スタミナ stamina" value={player.stamina} />
               </>
             ) : (
               <>
-                <RatingBar label="contact" value={player.contact} />
-                <RatingBar label="power" value={player.power} />
-                <RatingBar label="fielding" value={player.fielding} />
+                <RatingBar label="ミート contact" value={player.contact} />
+                <RatingBar label="長打力 power" value={player.power} />
+                <RatingBar label="守備 fielding" value={player.fielding} />
               </>
             )}
           </div>
@@ -487,11 +509,11 @@ function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) 
               <table className="mt-2 min-w-[620px] w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <th className="py-2 pr-3">era</th>
-                    <th className="py-2 pr-3">team</th>
-                    <th className="py-2 pr-3">games</th>
-                    <th className="py-2 pr-3">stat line</th>
-                    <th className="py-2">note</th>
+                    <th className="py-2 pr-3">年代</th>
+                    <th className="py-2 pr-3">所属チーム</th>
+                    <th className="py-2 pr-3">出場</th>
+                    <th className="py-2 pr-3">成績メモ</th>
+                    <th className="py-2">変換</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -599,13 +621,13 @@ function RoadmapPanel() {
         <div className="rounded-md border border-slate-200 p-3">
           <h3 className="font-semibold">詳細能力</h3>
           <p className="mt-1 text-sm text-slate-600">
-            打撃、走塁、守備、肩、制球、球威、変化、スタミナなどへ段階的に分解します。
+            打撃、走塁、守備、肩、制球、球威、変化球、スタミナなどへ段階的に分解します。
           </p>
         </div>
         <div className="rounded-md border border-slate-200 p-3">
           <h3 className="font-semibold">実シーズン校正</h3>
           <p className="mt-1 text-sm text-slate-600">
-            実在シーズンの得点、失点、勝率、打率、本塁打、防御率をテストデータにして能力を調整します。
+            現在は選手成績から能力を暫定変換。次は得点、失点、勝率、打率、本塁打、防御率が実シーズンに近づくように係数を調整します。
           </p>
         </div>
         <div className="rounded-md border border-slate-200 p-3">
@@ -740,11 +762,11 @@ export default function Home() {
   const [teamB, setTeamB] = useState<BaseballTeam>(initialTeamB);
   const [filtersA, setFiltersA] = useState<TeamFilters>({
     era: "2020s",
-    sourceTeam: "Tokyo Meteors"
+    sourceTeam: defaultTeamA
   });
   const [filtersB, setFiltersB] = useState<TeamFilters>({
     era: "2020s",
-    sourceTeam: "Osaka Waves"
+    sourceTeam: defaultTeamB
   });
   const [response, setResponse] = useState<SimulationResponse | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null);

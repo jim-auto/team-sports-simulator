@@ -33,9 +33,10 @@ function makeTeamName(
   sourceTeam: (typeof BASEBALL_SOURCE_TEAMS)[number] | "all",
   suffix: number
 ): string {
-  const eraLabel = era === "all" ? "Mixed Era" : era;
-  const teamLabel = sourceTeam === "all" ? "All Stars" : sourceTeam;
-  return `${eraLabel} ${teamLabel} ${suffix}`;
+  if (sourceTeam !== "all") return sourceTeam;
+
+  const eraLabel = era === "all" ? "全年代" : era;
+  return `${eraLabel} NPB選抜 ${suffix}`;
 }
 
 export function createRandomBaseballTeam(options: BaseballRandomTeamOptions = {}): BaseballTeam {
