@@ -65,8 +65,12 @@ function outcomeLabel(outcome: string): string {
   return "OUT";
 }
 
-function avatarSrc(player: BaseballHitter | BaseballPitcher): string {
+function fallbackAvatarSrc(player: BaseballHitter | BaseballPitcher): string {
   return `${basePath}/avatars/${player.imageId ?? "avatar-1"}.svg`;
+}
+
+function playerImageSrc(player: BaseballHitter | BaseballPitcher): string {
+  return player.imageUrl ?? fallbackAvatarSrc(player);
 }
 
 function isPitcher(player: BaseballHitter | BaseballPitcher): player is BaseballPitcher {
@@ -181,11 +185,11 @@ function TeamEditor({
                 <td className="py-2 pr-2">
                   <div className="flex min-w-[210px] items-center gap-2">
                     <Image
-                      src={avatarSrc(hitter)}
+                      src={playerImageSrc(hitter)}
                       alt={`${hitter.name} portrait`}
                       width={34}
                       height={34}
-                      className="h-[34px] w-[34px] rounded-md border border-slate-200 bg-slate-100"
+                      className="h-[34px] w-[34px] rounded-md border border-slate-200 bg-slate-100 object-cover"
                     />
                     <input
                       value={hitter.name}
@@ -256,11 +260,11 @@ function TeamEditor({
           </label>
           <div className="mt-1 flex items-center gap-2">
             <Image
-              src={avatarSrc(team.pitcher)}
+              src={playerImageSrc(team.pitcher)}
               alt={`${team.pitcher.name} portrait`}
               width={38}
               height={38}
-              className="h-[38px] w-[38px] rounded-md border border-slate-200 bg-slate-100"
+              className="h-[38px] w-[38px] rounded-md border border-slate-200 bg-slate-100 object-cover"
             />
             <input
               value={team.pitcher.name}
@@ -450,12 +454,15 @@ function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) 
       <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
         <div>
           <Image
-            src={avatarSrc(player)}
+            src={playerImageSrc(player)}
             alt={`${player.name} portrait`}
             width={220}
             height={220}
-            className="h-[220px] w-[220px] rounded-md border border-slate-200 bg-slate-100"
+            className="h-[220px] w-[220px] rounded-md border border-slate-200 bg-slate-100 object-cover"
           />
+          <p className="mt-2 text-xs text-slate-500">
+            {player.imageCredit ? `画像: ${player.imageCredit}` : "画像: 生成アバター"}
+          </p>
         </div>
         <div>
           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -482,6 +489,16 @@ function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) 
                   className="text-sm font-semibold text-emerald-700 hover:text-emerald-900"
                 >
                   成績ソースを見る
+                </a>
+              )}
+              {player.profileUrl && (
+                <a
+                  href={player.profileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-semibold text-emerald-700 hover:text-emerald-900"
+                >
+                  Wikipediaで見る
                 </a>
               )}
             </div>

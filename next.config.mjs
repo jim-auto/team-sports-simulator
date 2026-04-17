@@ -9,7 +9,13 @@ const nextConfig = {
   basePath,
   assetPrefix: basePath ? `${basePath}/` : undefined,
   images: {
-    unoptimized: true
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "upload.wikimedia.org"
+      }
+    ]
   },
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath

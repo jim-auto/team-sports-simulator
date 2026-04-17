@@ -65,6 +65,199 @@ interface RawPitcher {
   eraValue: number;
 }
 
+interface PlayerProfile {
+  title: string;
+  imageUrl?: string;
+}
+
+const WIKIMEDIA_CREDIT = "Wikipedia / Wikimedia Commons";
+
+const PLAYER_PROFILES: Record<string, PlayerProfile> = {
+  "近本 光司": {
+    title: "近本光司",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Koji_Chikamoto_2021-9-1_%28cropped%29.jpg/500px-Koji_Chikamoto_2021-9-1_%28cropped%29.jpg"
+  },
+  "中野 拓夢": {
+    title: "中野拓夢",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Takumu-Nakano-20231018-Koshien_%28cropped%29.jpg/500px-Takumu-Nakano-20231018-Koshien_%28cropped%29.jpg"
+  },
+  "森下 翔太": {
+    title: "森下翔太",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Shota_Morishita_Tigers.jpg/500px-Shota_Morishita_Tigers.jpg"
+  },
+  "佐藤 輝明": {
+    title: "佐藤輝明",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Teruaki-Sato-20240310-Koshien.jpg/500px-Teruaki-Sato-20240310-Koshien.jpg"
+  },
+  "大山 悠輔": {
+    title: "大山悠輔",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Yusuke_Ohyama_20230618.jpg/500px-Yusuke_Ohyama_20230618.jpg"
+  },
+  "坂本 誠志郎": {
+    title: "坂本誠志郎",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Seishio_Sakmoto_Tigers.jpg/500px-Seishio_Sakmoto_Tigers.jpg"
+  },
+  "小幡 竜平": { title: "小幡竜平" },
+  "前川 右京": {
+    title: "前川右京",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Ukyo-Maegawa-20240309-Koshien.jpg/500px-Ukyo-Maegawa-20240309-Koshien.jpg"
+  },
+  "熊谷 敬宥": {
+    title: "熊谷敬宥",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Takahiro_Kumagai_20250830.jpg/500px-Takahiro_Kumagai_20250830.jpg"
+  },
+  "蝦名 達夫": {
+    title: "蝦名達夫",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/20260322_Tatsuo_Ebina%2C_outfielder_of_the_Yokohama_DeNA_BayStars%2C_at_Seibu_Dome_Stadium.jpg/500px-20260322_Tatsuo_Ebina%2C_outfielder_of_the_Yokohama_DeNA_BayStars%2C_at_Seibu_Dome_Stadium.jpg"
+  },
+  "オースティン": {
+    title: "タイラー・オースティン",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/20201030_Tyler_Austin_infielder_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium.jpg/500px-20201030_Tyler_Austin_infielder_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium.jpg"
+  },
+  "桑原 将志": {
+    title: "桑原将志",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/%E6%A1%91%E5%8E%9F%E5%B0%86%E5%BF%97%E9%81%B8%E6%89%8B.jpg/500px-%E6%A1%91%E5%8E%9F%E5%B0%86%E5%BF%97%E9%81%B8%E6%89%8B.jpg"
+  },
+  "佐野 恵太": {
+    title: "佐野恵太",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/DB-Keita-Sano20210606.jpg/500px-DB-Keita-Sano20210606.jpg"
+  },
+  "筒香 嘉智": {
+    title: "筒香嘉智",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/%E7%AD%92%E9%A6%99%E5%98%89%E6%99%BA_202405261732_DSCN6088.jpg/500px-%E7%AD%92%E9%A6%99%E5%98%89%E6%99%BA_202405261732_DSCN6088.jpg"
+  },
+  "牧 秀悟": {
+    title: "牧秀悟",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/20210306_Shugo_Maki_infielder_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium_%28VS_ORIX%29.jpg/500px-20210306_Shugo_Maki_infielder_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium_%28VS_ORIX%29.jpg"
+  },
+  "宮﨑 敏郎": {
+    title: "宮﨑敏郎",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/20230325_Tosiro_Miyazaki_infielder_of_the_Yokohama_DeNA_BayStars%2C_at_Seibu_Dome.jpg/500px-20230325_Tosiro_Miyazaki_infielder_of_the_Yokohama_DeNA_BayStars%2C_at_Seibu_Dome.jpg"
+  },
+  "山本 祐大": {
+    title: "山本祐大",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/20260322_Yudai_Yamamoto%2C_catcher_of_the_Yokohama_DeNA_BayStars%2C_at_Seibu_Dome_Stadium.jpg/500px-20260322_Yudai_Yamamoto%2C_catcher_of_the_Yokohama_DeNA_BayStars%2C_at_Seibu_Dome_Stadium.jpg"
+  },
+  "度会 隆輝": {
+    title: "度会隆輝",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/20240309_Ryuki_Watarai%2C_outfielder_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium.jpg/500px-20240309_Ryuki_Watarai%2C_outfielder_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium.jpg"
+  },
+  "今宮 健太": {
+    title: "今宮健太",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Kenta_Imamiya_20220507.jpg/500px-Kenta_Imamiya_20220507.jpg"
+  },
+  "栗原 陵矢": {
+    title: "栗原陵矢",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Hawks-kurihara.jpg/500px-Hawks-kurihara.jpg"
+  },
+  "近藤 健介": {
+    title: "近藤健介",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Kensuke_Kondoh_Hawks_20230405.jpg/500px-Kensuke_Kondoh_Hawks_20230405.jpg"
+  },
+  "周東 佑京": {
+    title: "周東佑京",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/%E3%81%BF%E3%81%9A%E3%81%BBPayPay%E3%83%89%E3%83%BC%E3%83%A0_2024.9.18.jpg/500px-%E3%81%BF%E3%81%9A%E3%81%BBPayPay%E3%83%89%E3%83%BC%E3%83%A0_2024.9.18.jpg"
+  },
+  "中村 晃": { title: "中村晃" },
+  "野村 勇": {
+    title: "野村勇",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Isami_Nomura_Fukuoka_SoftBank_Hawks_20220911.jpg/500px-Isami_Nomura_Fukuoka_SoftBank_Hawks_20220911.jpg"
+  },
+  "牧原 大成": {
+    title: "牧原大成",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/HAWKS69-MAKIHARA.jpg/500px-HAWKS69-MAKIHARA.jpg"
+  },
+  "柳町 達": {
+    title: "柳町達",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/%E6%9F%B3%E7%94%BA%E9%81%94_cropped_from_202309241742_DSCN4522.jpg/500px-%E6%9F%B3%E7%94%BA%E9%81%94_cropped_from_202309241742_DSCN4522.jpg"
+  },
+  "山川 穂高": {
+    title: "山川穂高",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Hotaka_Yamakawa_Hawks_20240329.jpg/500px-Hotaka_Yamakawa_Hawks_20240329.jpg"
+  },
+  "石井 一成": {
+    title: "石井一成",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Kazunari_Ishi_20231102.jpg/500px-Kazunari_Ishi_20231102.jpg"
+  },
+  "五十幡 亮汰": {
+    title: "五十幡亮汰",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Ryota_Isobata_Fighters_20230408.jpg/500px-Ryota_Isobata_Fighters_20230408.jpg"
+  },
+  "清宮 幸太郎": {
+    title: "清宮幸太郎",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Kotaro_Kiyomiya_Fighters_20220807.jpg/500px-Kotaro_Kiyomiya_Fighters_20220807.jpg"
+  },
+  "郡司 裕也": {
+    title: "郡司裕也",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Yuya_Gunji_Fighters_20230819.jpg/500px-Yuya_Gunji_Fighters_20230819.jpg"
+  },
+  "田宮 裕涼": {
+    title: "田宮裕涼",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Yua_Tamiya.jpg/500px-Yua_Tamiya.jpg"
+  },
+  "野村 佑希": {
+    title: "野村佑希",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/%E9%87%8E%E6%9D%91%E4%BD%91%E5%B8%8C20190321.jpg/500px-%E9%87%8E%E6%9D%91%E4%BD%91%E5%B8%8C20190321.jpg"
+  },
+  "万波 中正": {
+    title: "万波中正",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Chusei_Mannami_Fighters_20230408.jpg/500px-Chusei_Mannami_Fighters_20230408.jpg"
+  },
+  "水谷 瞬": {
+    title: "水谷瞬",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Shun_Mizutani_2.jpg/500px-Shun_Mizutani_2.jpg"
+  },
+  "レイエス": {
+    title: "フランミル・レイエス",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Franmil_Federico_Reyes_Fighters_20240504.jpg/500px-Franmil_Federico_Reyes_Fighters_20240504.jpg"
+  },
+  "村上 頌樹": {
+    title: "村上頌樹",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/%E6%9D%91%E4%B8%8A.jpg/500px-%E6%9D%91%E4%B8%8A.jpg"
+  },
+  "才木 浩人": {
+    title: "才木浩人",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Hiroto_Saiki_20250309.jpg/500px-Hiroto_Saiki_20250309.jpg"
+  },
+  "デュプランティエ": {
+    title: "ジョン・デュプランティエ",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/20260416_Jon_Christopher_Duplantier%2Cpitcher_of_the_Yokohama_DeNA_BayStars_at_Meijijinguh_Stadium.jpg/500px-20260416_Jon_Christopher_Duplantier%2Cpitcher_of_the_Yokohama_DeNA_BayStars_at_Meijijinguh_Stadium.jpg"
+  },
+  "ケイ": {
+    title: "アンソニー・ケイ",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/20240309_Anthony_Benjamin_Kay%2C_pitcher_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium.jpg/500px-20240309_Anthony_Benjamin_Kay%2C_pitcher_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium.jpg"
+  },
+  "ジャクソン": {
+    title: "アンドレ・ジャクソン",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/20240309_Andre_Terrell_Jackson%2C_pitcher_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium.jpg/500px-20240309_Andre_Terrell_Jackson%2C_pitcher_of_the_Yokohama_DeNA_BayStars%2C_at_Yokohama_Stadium.jpg"
+  },
+  "バウアー": {
+    title: "トレバー・バウアー",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/%E6%A8%AA%E6%B5%9CDeNA%E3%83%99%E3%82%A4%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BA%E6%89%80%E5%B1%9E%E3%81%AE%E3%83%90%E3%82%A6%E3%82%A2%E3%83%BC20230422trevorbauer.jpg/500px-%E6%A8%AA%E6%B5%9CDeNA%E3%83%99%E3%82%A4%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BA%E6%89%80%E5%B1%9E%E3%81%AE%E3%83%90%E3%82%A6%E3%82%A2%E3%83%BC20230422trevorbauer.jpg"
+  },
+  "有原 航平": {
+    title: "有原航平",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Arihara%28fighters%29_%28cropped%29.jpg/500px-Arihara%28fighters%29_%28cropped%29.jpg"
+  },
+  "上沢 直之": {
+    title: "上沢直之",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/NF-Naoyuki-Uwasawa20210417.jpg/500px-NF-Naoyuki-Uwasawa20210417.jpg"
+  },
+  "大関 友久": {
+    title: "大関友久",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Tomohisa_Ozeki_20220507.jpg/500px-Tomohisa_Ozeki_20220507.jpg"
+  },
+  "伊藤 大海": { title: "伊藤大海" },
+  "北山 亘基": {
+    title: "北山亘基",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Fighters_Koki_Kitayama_20220403.jpg/500px-Fighters_Koki_Kitayama_20220403.jpg"
+  },
+  "達 孝太": {
+    title: "達孝太",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Kota_Tatsu.jpg/500px-Kota_Tatsu.jpg"
+  }
+};
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -89,6 +282,25 @@ function teamSlug(team: string): string {
 
 function avatarId(id: string): string {
   return `avatar-${(stableHash(id) % 8) + 1}`;
+}
+
+function wikiUrl(title: string): string {
+  return `https://ja.wikipedia.org/wiki/${encodeURIComponent(title)}`;
+}
+
+function playerProfile(name: string): {
+  profileUrl?: string;
+  imageUrl?: string;
+  imageCredit?: string;
+} {
+  const profile = PLAYER_PROFILES[name];
+  if (!profile) return {};
+
+  return {
+    profileUrl: wikiUrl(profile.title),
+    imageUrl: profile.imageUrl,
+    imageCredit: profile.imageUrl ? WIKIMEDIA_CREDIT : undefined
+  };
 }
 
 function rating(value: number): number {
@@ -214,6 +426,7 @@ export function getBaseballPlayerPool(): {
 } {
   const hitters = RAW_HITTERS.map((player, index): BaseballHitter => {
     const id = `bb-h-2025-${teamSlug(player.team)}-${index + 1}`;
+    const profile = playerProfile(player.name);
     return {
       id,
       name: player.name,
@@ -222,6 +435,7 @@ export function getBaseballPlayerPool(): {
       era: "2020s",
       sourceTeam: player.team,
       imageId: avatarId(id),
+      ...profile,
       dataSeason: BASEBALL_DATA_SEASON,
       sourceUrl: player.sourceUrl,
       teamHistory: hitterHistory(player),
@@ -233,6 +447,7 @@ export function getBaseballPlayerPool(): {
 
   const pitchers = RAW_PITCHERS.map((player, index): BaseballPitcher => {
     const id = `bb-p-2025-${teamSlug(player.team)}-${index + 1}`;
+    const profile = playerProfile(player.name);
     return {
       id,
       name: player.name,
@@ -241,6 +456,7 @@ export function getBaseballPlayerPool(): {
       era: "2020s",
       sourceTeam: player.team,
       imageId: avatarId(id),
+      ...profile,
       dataSeason: BASEBALL_DATA_SEASON,
       sourceUrl: player.sourceUrl,
       teamHistory: pitcherHistory(player),

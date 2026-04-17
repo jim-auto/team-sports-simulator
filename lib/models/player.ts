@@ -17,7 +17,10 @@ export interface PlayerBase {
   era?: PlayerEra;
   sourceTeam?: string;
   imageId?: string;
+  imageUrl?: string;
+  imageCredit?: string;
   dataSeason?: number;
+  profileUrl?: string;
   sourceUrl?: string;
   teamHistory?: PlayerTeamStint[];
 }
