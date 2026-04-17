@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   BASEBALL_DATA_SEASON,
@@ -10,17 +11,15 @@ import {
   BASEBALL_SOURCE_TEAMS
 } from "@/lib/engine/baseball/playerPool";
 import { baseballEngine } from "@/lib/engine/baseball/baseballEngine";
-import { simulateNpbSeason } from "@/lib/engine/baseball/leagueSimulator";
 import { createRandomBaseballTeam } from "@/lib/engine/baseball/randomTeam";
 import type { BaseballHitter, BaseballPitcher, PlayerEra } from "@/lib/models/player";
 import type { BaseballTeam } from "@/lib/models/team";
-import type { LeagueSeasonResult, MatchResult, SeriesResult } from "@/lib/models/result";
+import type { MatchResult, SeriesResult } from "@/lib/models/result";
 
 type SportOption = "baseball" | "soccer";
 type SimulationResponse =
   | { mode: "match"; result: MatchResult }
-  | { mode: "series"; result: SeriesResult }
-  | { mode: "league"; result: LeagueSeasonResult };
+  | { mode: "series"; result: SeriesResult };
 
 interface TeamFilters {
   era: PlayerEra | "all";
@@ -724,124 +723,6 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
     );
   }
 
-  if (response.mode === "league") {
-    const result = response.result;
-    return (
-      <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
-        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h2 className="text-xl font-bold">12球団リーグ戦 + CS + 日本シリーズ</h2>
-            <p className="text-sm text-slate-600">
-              同一リーグ各カード {result.gamesPerCard} 試合 / 優勝: {result.champion}
-            </p>
-          </div>
-          <div className="rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-950">
-            日本一: {result.champion}
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          {result.leagues.map((league) => (
-            <div key={league.name}>
-              <h3 className="font-semibold">{league.name}</h3>
-              <div className="mt-2 overflow-x-auto rounded-md border border-slate-200">
-                <table className="min-w-[520px] w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                      <th className="px-2 py-2">順位</th>
-                      <th className="px-2 py-2">チーム</th>
-                      <th className="px-2 py-2 text-right">勝</th>
-                      <th className="px-2 py-2 text-right">敗</th>
-                      <th className="px-2 py-2 text-right">分</th>
-                      <th className="px-2 py-2 text-right">勝率</th>
-                      <th className="px-2 py-2 text-right">得失点</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {league.standings.map((standing, index) => (
-                      <tr key={standing.teamName} className="border-b border-slate-100 last:border-b-0">
-                        <td className="px-2 py-2 font-medium">{index + 1}</td>
-                        <td className="px-2 py-2 font-semibold">{standing.teamName}</td>
-                        <td className="px-2 py-2 text-right">{standing.wins}</td>
-                        <td className="px-2 py-2 text-right">{standing.losses}</td>
-                        <td className="px-2 py-2 text-right">{standing.draws}</td>
-                        <td className="px-2 py-2 text-right">{standing.winningPercentage.toFixed(3)}</td>
-                        <td className="px-2 py-2 text-right">
-                          {standing.runsFor - standing.runsAgainst >= 0 ? "+" : ""}
-                          {standing.runsFor - standing.runsAgainst}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-5">
-          <h3 className="font-semibold">クライマックスシリーズ</h3>
-          <div className="mt-3 grid gap-3 xl:grid-cols-2">
-            {result.climaxSeries.map((round) => (
-              <div key={round.name} className="rounded-md border border-slate-200 p-3">
-                <div className="flex flex-col gap-1 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <div className="font-semibold">{round.name}</div>
-                    <div className="text-sm text-slate-500">
-                      {round.series.teamA}
-                      {round.teamASeed ? ` (${round.teamASeed}位)` : ""} vs {round.series.teamB}
-                      {round.teamBSeed ? ` (${round.teamBSeed}位)` : ""}
-                    </div>
-                  </div>
-                  <div className="text-sm font-semibold text-emerald-700">
-                    勝者: {round.winner}
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm">
-                  <div>
-                    <div className="text-slate-500">{round.series.teamA}</div>
-                    <div className="text-2xl font-bold">{round.series.winsA}勝</div>
-                  </div>
-                  <div className="text-center font-semibold text-slate-500">
-                    {round.series.games}試合
-                  </div>
-                  <div className="text-right">
-                    <div className="text-slate-500">{round.series.teamB}</div>
-                    <div className="text-2xl font-bold">{round.series.winsB}勝</div>
-                  </div>
-                </div>
-                {round.note && <p className="mt-2 text-xs text-slate-500">{round.note}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5 rounded-md border border-slate-200 p-4">
-          <h3 className="font-semibold">日本シリーズ</h3>
-          <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
-            <div>
-              <div className="text-sm text-slate-500">{result.japanSeries.teamA}</div>
-              <div className="text-3xl font-bold">{result.japanSeries.winsA}勝</div>
-            </div>
-            <div className="text-center text-sm font-semibold text-slate-500">
-              {result.japanSeries.games}試合
-            </div>
-            <div className="text-right md:text-left">
-              <div className="text-sm text-slate-500">{result.japanSeries.teamB}</div>
-              <div className="text-3xl font-bold">{result.japanSeries.winsB}勝</div>
-            </div>
-          </div>
-          {result.japanSeries.overallMvp && (
-            <div className="mt-3 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
-              シリーズMVP: {result.japanSeries.overallMvp.playerName}
-            </div>
-          )}
-          <GameFlowPanel match={result.japanSeries.sampleMatch} />
-        </div>
-      </section>
-    );
-  }
-
   if (response.mode === "series") {
     const result = response.result;
     return (
@@ -949,7 +830,6 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
 export default function Home() {
   const [sport, setSport] = useState<SportOption>("baseball");
   const [games, setGames] = useState(100);
-  const [leagueGamesPerCard, setLeagueGamesPerCard] = useState(12);
   const [seed, setSeed] = useState("demo-seed");
   const [teamA, setTeamA] = useState<BaseballTeam>(initialTeamA);
   const [teamB, setTeamB] = useState<BaseballTeam>(initialTeamB);
@@ -1017,26 +897,6 @@ export default function Home() {
     }
   }
 
-  function simulateLeagueSeason() {
-    setLoading(true);
-    setError("");
-    try {
-      const result = simulateNpbSeason({
-        seed,
-        gamesPerCard: leagueGamesPerCard
-      });
-
-      setResponse({
-        mode: "league",
-        result
-      });
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "League simulation failed.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <main className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
@@ -1048,7 +908,7 @@ export default function Home() {
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
               {matchupName}
             </h1>
-            <div className="mt-5 grid gap-3 md:grid-cols-5">
+            <div className="mt-5 grid gap-3 md:grid-cols-4">
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   sport
@@ -1074,20 +934,6 @@ export default function Home() {
                   <option value={1}>1</option>
                   <option value={100}>100</option>
                   <option value={1000}>1000</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  league
-                </span>
-                <select
-                  value={leagueGamesPerCard}
-                  onChange={(event) => setLeagueGamesPerCard(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2"
-                >
-                  <option value={6}>各カード6試合（短縮）</option>
-                  <option value={12}>各カード12試合</option>
-                  <option value={24}>各カード24試合</option>
                 </select>
               </label>
               <label className="block md:col-span-2">
@@ -1118,14 +964,12 @@ export default function Home() {
               >
                 両チームをランダム編成
               </button>
-              <button
-                type="button"
-                onClick={simulateLeagueSeason}
-                disabled={disabled || loading}
-                className="rounded-md bg-emerald-700 px-5 py-2 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              <Link
+                href="/season"
+                className="rounded-md bg-emerald-700 px-5 py-2 font-semibold text-white hover:bg-emerald-800"
               >
-                12球団リーグ戦から日本シリーズ
-              </button>
+                1年シーズンへ
+              </Link>
             </div>
             {disabled && (
               <p className="mt-3 text-sm text-rose-700">
