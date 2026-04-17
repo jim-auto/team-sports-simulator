@@ -10,6 +10,7 @@ export interface BaseballTeam extends TeamBase {
   sport: "baseball";
   hitters: BaseballHitter[];
   pitcher: BaseballPitcher;
+  pitchingStaff?: BaseballPitcher[];
 }
 
 export interface SoccerTeam extends TeamBase {

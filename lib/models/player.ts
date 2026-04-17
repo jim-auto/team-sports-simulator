@@ -28,14 +28,20 @@ export interface PlayerBase {
 export interface BaseballHitter extends PlayerBase {
   sport: "baseball";
   role: "hitter";
+  position: string;
+  positionDetail?: string;
   contact: number;
   power: number;
   fielding: number;
 }
 
+export type BaseballPitcherUsage = "先発" | "中継ぎ" | "抑え";
+
 export interface BaseballPitcher extends PlayerBase {
   sport: "baseball";
   role: "pitcher";
+  position: "投手";
+  pitchingRole: BaseballPitcherUsage;
   control: number;
   stuff: number;
   stamina: number;

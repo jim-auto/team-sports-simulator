@@ -94,3 +94,28 @@ export interface SeriesResult {
   overallMvp?: MVPResult;
   sampleMatch?: MatchResult;
 }
+
+export interface LeagueStanding {
+  leagueName: string;
+  teamName: string;
+  wins: number;
+  losses: number;
+  draws: number;
+  runsFor: number;
+  runsAgainst: number;
+  winningPercentage: number;
+}
+
+export interface LeagueSeasonGroup {
+  name: string;
+  standings: LeagueStanding[];
+}
+
+export interface LeagueSeasonResult {
+  sport: "baseball";
+  gamesPerCard: number;
+  leagues: LeagueSeasonGroup[];
+  japanSeries: SeriesResult;
+  champion: string;
+  runnerUp: string;
+}

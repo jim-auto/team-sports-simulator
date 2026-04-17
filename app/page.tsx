@@ -9,15 +9,17 @@ import {
   BASEBALL_SOURCE_TEAMS
 } from "@/lib/engine/baseball/playerPool";
 import { baseballEngine } from "@/lib/engine/baseball/baseballEngine";
+import { simulateNpbMiniSeason } from "@/lib/engine/baseball/leagueSimulator";
 import { createRandomBaseballTeam } from "@/lib/engine/baseball/randomTeam";
 import type { BaseballHitter, BaseballPitcher, PlayerEra } from "@/lib/models/player";
 import type { BaseballTeam } from "@/lib/models/team";
-import type { MatchResult, SeriesResult } from "@/lib/models/result";
+import type { LeagueSeasonResult, MatchResult, SeriesResult } from "@/lib/models/result";
 
 type SportOption = "baseball" | "soccer";
 type SimulationResponse =
   | { mode: "match"; result: MatchResult }
-  | { mode: "series"; result: SeriesResult };
+  | { mode: "series"; result: SeriesResult }
+  | { mode: "league"; result: LeagueSeasonResult };
 
 interface TeamFilters {
   era: PlayerEra | "all";
@@ -93,6 +95,20 @@ function updateHitter(
   };
 }
 
+function updateStartingPitcher(
+  team: BaseballTeam,
+  patch: Partial<BaseballPitcher>
+): BaseballTeam {
+  const pitcher = { ...team.pitcher, ...patch };
+  const pitchingStaff = team.pitchingStaff?.length
+    ? team.pitchingStaff.map((staffPitcher, index) =>
+        index === 0 || staffPitcher.id === team.pitcher.id ? pitcher : staffPitcher
+      )
+    : [pitcher];
+
+  return { ...team, pitcher, pitchingStaff };
+}
+
 function TeamEditor({
   label,
   teamSide,
@@ -112,6 +128,8 @@ function TeamEditor({
   onRandomize: () => void;
   onPlayerSelect: (selection: SelectedPlayer) => void;
 }) {
+  const pitchingStaff = team.pitchingStaff?.length ? team.pitchingStaff : [team.pitcher];
+
   return (
     <section className="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -165,11 +183,12 @@ function TeamEditor({
       </div>
 
       <div className="mt-4 overflow-x-auto">
-        <table className="min-w-[820px] w-full border-collapse text-sm">
+        <table className="min-w-[900px] w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
               <th className="py-2 pr-2">#</th>
               <th className="py-2 pr-2">打者</th>
+              <th className="py-2 pr-2">守備位置</th>
               <th className="py-2 pr-2">ミート</th>
               <th className="py-2 pr-2">長打力</th>
               <th className="py-2 pr-2">守備</th>
@@ -199,6 +218,12 @@ function TeamEditor({
                       className="w-full min-w-[150px] rounded-md border border-slate-300 px-2 py-1 outline-none focus:border-emerald-600"
                     />
                   </div>
+                </td>
+                <td className="py-2 pr-2 text-slate-700">
+                  <div className="font-medium">{hitter.position}</div>
+                  {hitter.positionDetail && (
+                    <div className="text-xs text-slate-500">{hitter.positionDetail}</div>
+                  )}
                 </td>
                 <td className="py-2 pr-2">
                   <input
@@ -256,7 +281,7 @@ function TeamEditor({
       <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-[1fr_120px_120px_120px_70px]">
         <div>
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            投手
+            先発投手
           </label>
           <div className="mt-1 flex items-center gap-2">
             <Image
@@ -269,13 +294,13 @@ function TeamEditor({
             <input
               value={team.pitcher.name}
               onChange={(event) =>
-                onTeamChange({
-                  ...team,
-                  pitcher: { ...team.pitcher, name: event.target.value }
-                })
+                onTeamChange(updateStartingPitcher(team, { name: event.target.value }))
               }
               className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
             />
+          </div>
+          <div className="mt-1 text-xs text-slate-500">
+            {team.pitcher.position} / {team.pitcher.pitchingRole}
           </div>
         </div>
         <div>
@@ -288,13 +313,11 @@ function TeamEditor({
             max={100}
             value={team.pitcher.control}
             onChange={(event) =>
-              onTeamChange({
-                ...team,
-                pitcher: {
-                  ...team.pitcher,
+              onTeamChange(
+                updateStartingPitcher(team, {
                   control: clampRating(Number(event.target.value))
-                }
-              })
+                })
+              )
             }
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
           />
@@ -309,13 +332,11 @@ function TeamEditor({
             max={100}
             value={team.pitcher.stuff}
             onChange={(event) =>
-              onTeamChange({
-                ...team,
-                pitcher: {
-                  ...team.pitcher,
+              onTeamChange(
+                updateStartingPitcher(team, {
                   stuff: clampRating(Number(event.target.value))
-                }
-              })
+                })
+              )
             }
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
           />
@@ -330,13 +351,11 @@ function TeamEditor({
             max={100}
             value={team.pitcher.stamina}
             onChange={(event) =>
-              onTeamChange({
-                ...team,
-                pitcher: {
-                  ...team.pitcher,
+              onTeamChange(
+                updateStartingPitcher(team, {
                   stamina: clampRating(Number(event.target.value))
-                }
-              })
+                })
+              )
             }
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
           />
@@ -349,6 +368,39 @@ function TeamEditor({
           >
             詳細
           </a>
+        </div>
+      </div>
+
+      <div className="mt-4 border-t border-slate-200 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-semibold">投手陣</h3>
+          <span className="text-xs text-slate-500">先発・中継ぎ・抑え</span>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          {pitchingStaff.map((pitcher, index) => (
+            <button
+              key={`${pitcher.id}-${index}`}
+              type="button"
+              onClick={() => onPlayerSelect({ player: pitcher, team, teamSide })}
+              className="flex min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 text-left hover:border-emerald-600 hover:bg-white"
+            >
+              <Image
+                src={playerImageSrc(pitcher)}
+                alt={`${pitcher.name} portrait`}
+                width={36}
+                height={36}
+                className="h-9 w-9 rounded-md border border-slate-200 bg-slate-100 object-cover"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-slate-900">
+                  {pitcher.name}
+                </span>
+                <span className="block text-xs text-slate-500">
+                  {index === 0 ? "現在の先発" : pitcher.pitchingRole} / 制球 {pitcher.control} / 球威 {pitcher.stuff}
+                </span>
+              </span>
+            </button>
+          ))}
         </div>
       </div>
     </section>
@@ -447,7 +499,7 @@ function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) 
 
   const { player, team, teamSide } = selection;
   const activeStint = player.teamHistory?.[0];
-  const roleLabel = isPitcher(player) ? "投手" : "打者";
+  const roleLabel = isPitcher(player) ? `投手 / ${player.pitchingRole}` : `打者 / ${player.position}`;
 
   return (
     <section id="player-detail" className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
@@ -473,6 +525,10 @@ function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) 
               <h2 className="text-2xl font-bold">{player.name}</h2>
               <p className="mt-1 text-sm text-slate-600">
                 現在の起用: {team.name} / 能力基準: {player.dataSeason ?? BASEBALL_DATA_SEASON}年 {player.sourceTeam}
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                ポジション: {isPitcher(player) ? `${player.position} (${player.pitchingRole})` : player.position}
+                {!isPitcher(player) && player.positionDetail ? ` / ${player.positionDetail}` : ""}
               </p>
             </div>
             <div className="flex flex-col gap-2 md:items-end">
@@ -667,6 +723,87 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
     );
   }
 
+  if (response.mode === "league") {
+    const result = response.result;
+    return (
+      <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-xl font-bold">リーグ戦 + 日本シリーズ</h2>
+            <p className="text-sm text-slate-600">
+              各リーグ {result.gamesPerCard} 試合カード / 優勝: {result.champion}
+            </p>
+          </div>
+          <div className="rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-950">
+            日本一: {result.champion}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          {result.leagues.map((league) => (
+            <div key={league.name}>
+              <h3 className="font-semibold">{league.name}</h3>
+              <div className="mt-2 overflow-x-auto rounded-md border border-slate-200">
+                <table className="min-w-[520px] w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-left">
+                      <th className="px-2 py-2">順位</th>
+                      <th className="px-2 py-2">チーム</th>
+                      <th className="px-2 py-2 text-right">勝</th>
+                      <th className="px-2 py-2 text-right">敗</th>
+                      <th className="px-2 py-2 text-right">分</th>
+                      <th className="px-2 py-2 text-right">勝率</th>
+                      <th className="px-2 py-2 text-right">得失点</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {league.standings.map((standing, index) => (
+                      <tr key={standing.teamName} className="border-b border-slate-100 last:border-b-0">
+                        <td className="px-2 py-2 font-medium">{index + 1}</td>
+                        <td className="px-2 py-2 font-semibold">{standing.teamName}</td>
+                        <td className="px-2 py-2 text-right">{standing.wins}</td>
+                        <td className="px-2 py-2 text-right">{standing.losses}</td>
+                        <td className="px-2 py-2 text-right">{standing.draws}</td>
+                        <td className="px-2 py-2 text-right">{standing.winningPercentage.toFixed(3)}</td>
+                        <td className="px-2 py-2 text-right">
+                          {standing.runsFor - standing.runsAgainst >= 0 ? "+" : ""}
+                          {standing.runsFor - standing.runsAgainst}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 rounded-md border border-slate-200 p-4">
+          <h3 className="font-semibold">日本シリーズ</h3>
+          <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+            <div>
+              <div className="text-sm text-slate-500">{result.japanSeries.teamA}</div>
+              <div className="text-3xl font-bold">{result.japanSeries.winsA}勝</div>
+            </div>
+            <div className="text-center text-sm font-semibold text-slate-500">
+              {result.japanSeries.games}試合
+            </div>
+            <div className="text-right md:text-left">
+              <div className="text-sm text-slate-500">{result.japanSeries.teamB}</div>
+              <div className="text-3xl font-bold">{result.japanSeries.winsB}勝</div>
+            </div>
+          </div>
+          {result.japanSeries.overallMvp && (
+            <div className="mt-3 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+              シリーズMVP: {result.japanSeries.overallMvp.playerName}
+            </div>
+          )}
+          <GameFlowPanel match={result.japanSeries.sampleMatch} />
+        </div>
+      </section>
+    );
+  }
+
   if (response.mode === "series") {
     const result = response.result;
     return (
@@ -774,6 +911,7 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
 export default function Home() {
   const [sport, setSport] = useState<SportOption>("baseball");
   const [games, setGames] = useState(100);
+  const [leagueGamesPerCard, setLeagueGamesPerCard] = useState(12);
   const [seed, setSeed] = useState("demo-seed");
   const [teamA, setTeamA] = useState<BaseballTeam>(initialTeamA);
   const [teamB, setTeamB] = useState<BaseballTeam>(initialTeamB);
@@ -841,6 +979,26 @@ export default function Home() {
     }
   }
 
+  function simulateLeagueSeason() {
+    setLoading(true);
+    setError("");
+    try {
+      const result = simulateNpbMiniSeason({
+        seed,
+        gamesPerCard: leagueGamesPerCard
+      });
+
+      setResponse({
+        mode: "league",
+        result
+      });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "League simulation failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
@@ -852,7 +1010,7 @@ export default function Home() {
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
               {matchupName}
             </h1>
-            <div className="mt-5 grid gap-3 md:grid-cols-4">
+            <div className="mt-5 grid gap-3 md:grid-cols-5">
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   sport
@@ -878,6 +1036,20 @@ export default function Home() {
                   <option value={1}>1</option>
                   <option value={100}>100</option>
                   <option value={1000}>1000</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  league
+                </span>
+                <select
+                  value={leagueGamesPerCard}
+                  onChange={(event) => setLeagueGamesPerCard(Number(event.target.value))}
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2"
+                >
+                  <option value={6}>各カード6試合</option>
+                  <option value={12}>各カード12試合</option>
+                  <option value={24}>各カード24試合</option>
                 </select>
               </label>
               <label className="block md:col-span-2">
@@ -907,6 +1079,14 @@ export default function Home() {
                 className="rounded-md border border-slate-300 bg-white px-5 py-2 font-semibold text-slate-900 hover:border-emerald-700 disabled:cursor-not-allowed disabled:text-slate-400"
               >
                 両チームをランダム編成
+              </button>
+              <button
+                type="button"
+                onClick={simulateLeagueSeason}
+                disabled={disabled || loading}
+                className="rounded-md bg-emerald-700 px-5 py-2 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                リーグ戦から日本シリーズ
               </button>
             </div>
             {disabled && (

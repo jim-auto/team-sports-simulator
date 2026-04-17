@@ -63,11 +63,19 @@ export function createRandomBaseballTeam(options: BaseballRandomTeamOptions = {}
   }
 
   const suffix = rng.int(100, 999);
+  const starterPool = pitchers.filter((player) => player.pitchingRole === "先発");
+  const starter = rng.pick(starterPool.length > 0 ? starterPool : pitchers);
+  const reservePitchers = rng
+    .shuffle(pitchers.filter((player) => player.id !== starter.id))
+    .slice(0, 5)
+    .map((player) => ({ ...player }));
+
   return {
     id: `bb-team-${suffix}-${rng.int(1000, 9999)}`,
     name: options.name?.trim() || makeTeamName(era, sourceTeam, suffix),
     sport: "baseball",
     hitters: rng.shuffle(hitters).slice(0, 9).map((player) => ({ ...player })),
-    pitcher: { ...rng.pick(pitchers) }
+    pitcher: { ...starter },
+    pitchingStaff: [{ ...starter }, ...reservePitchers]
   };
 }
