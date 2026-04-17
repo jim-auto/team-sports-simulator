@@ -2,6 +2,8 @@ import type { SportEngine, SimulateOptions } from "@/lib/engine/SportEngine";
 import { createSeededRandom, deriveSeed } from "@/lib/engine/random";
 import type { BaseballHitter, BaseballPitcher } from "@/lib/models/player";
 import type {
+  BaseballInningScore,
+  BaseballKeyMoment,
   BaseballLogEntry,
   MatchResult,
   MVPResult,
@@ -16,8 +18,21 @@ interface MutableGameState {
   scoreB: number;
   batterIndexA: number;
   batterIndexB: number;
+  pitcherBattersFacedA: number;
+  pitcherBattersFacedB: number;
   stats: Map<string, PlayerMatchStats>;
   log: BaseballLogEntry[];
+  lineScore: BaseballInningScore[];
+  keyMoments: BaseballKeyMoment[];
+}
+
+interface PlateAppearanceResolution {
+  outcome: PlateAppearanceOutcome;
+  hitProbability: number;
+  defenseRating: number;
+  pitcherFatigue: number;
+  effectiveControl: number;
+  effectiveStuff: number;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -26,6 +41,37 @@ function clamp(value: number, min: number, max: number): number {
 
 function sigmoid(value: number): number {
   return 1 / (1 + Math.exp(-value));
+}
+
+function average(values: number[]): number {
+  if (values.length === 0) return 50;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function averageFielding(team: BaseballTeam): number {
+  return average(team.hitters.map((hitter) => hitter.fielding));
+}
+
+function pitcherFatiguePenalty(pitcher: BaseballPitcher, battersFaced: number): number {
+  const comfortableWorkload = 16 + pitcher.stamina * 0.18;
+  return clamp((battersFaced - comfortableWorkload) * 0.6, 0, 14);
+}
+
+function leader(scoreA: number, scoreB: number): "A" | "B" | "tie" {
+  if (scoreA > scoreB) return "A";
+  if (scoreB > scoreA) return "B";
+  return "tie";
+}
+
+function halfLabel(half: "top" | "bottom"): string {
+  return half === "top" ? "表" : "裏";
+}
+
+function outcomeText(outcome: PlateAppearanceOutcome): string {
+  if (outcome === "home_run") return "本塁打";
+  if (outcome === "double") return "二塁打";
+  if (outcome === "single") return "安打";
+  return "凡退";
 }
 
 function statKey(teamSide: "A" | "B", playerId: string): string {
@@ -51,6 +97,7 @@ function emptyStats(
     rbi: 0,
     outs: 0,
     pitchingOuts: 0,
+    battersFaced: 0,
     runsAllowed: 0,
     mvpScore: 0
   };
@@ -85,14 +132,27 @@ function getStats(
 function resolvePlateAppearance(
   hitter: BaseballHitter,
   pitcher: BaseballPitcher,
+  defenseRating: number,
+  battersFaced: number,
   rng: ReturnType<typeof createSeededRandom>
-): PlateAppearanceOutcome {
-  const contactEdge = sigmoid((hitter.contact - pitcher.control) / 14);
-  const powerEdge = sigmoid((hitter.power - pitcher.stuff) / 14);
-  const hitProbability = clamp(0.18 + contactEdge * 0.32, 0.18, 0.5);
+): PlateAppearanceResolution {
+  const pitcherFatigue = pitcherFatiguePenalty(pitcher, battersFaced);
+  const effectiveControl = clamp(pitcher.control - pitcherFatigue, 20, 100);
+  const effectiveStuff = clamp(pitcher.stuff - pitcherFatigue * 0.8, 20, 100);
+  const contactEdge = sigmoid((hitter.contact - effectiveControl) / 14);
+  const powerEdge = sigmoid((hitter.power - effectiveStuff) / 14);
+  const defenseAdjustment = clamp((defenseRating - 60) / 260, -0.08, 0.08);
+  const hitProbability = clamp(0.18 + contactEdge * 0.32 - defenseAdjustment, 0.13, 0.52);
 
   if (rng.next() > hitProbability) {
-    return "out";
+    return {
+      outcome: "out",
+      hitProbability,
+      defenseRating,
+      pitcherFatigue,
+      effectiveControl,
+      effectiveStuff
+    };
   }
 
   const homeRunShare = clamp(0.04 + powerEdge * 0.2, 0.03, 0.24);
@@ -100,12 +160,33 @@ function resolvePlateAppearance(
   const roll = rng.next();
 
   if (roll < homeRunShare) {
-    return "home_run";
+    return {
+      outcome: "home_run",
+      hitProbability,
+      defenseRating,
+      pitcherFatigue,
+      effectiveControl,
+      effectiveStuff
+    };
   }
   if (roll < homeRunShare + doubleShare) {
-    return "double";
+    return {
+      outcome: "double",
+      hitProbability,
+      defenseRating,
+      pitcherFatigue,
+      effectiveControl,
+      effectiveStuff
+    };
   }
-  return "single";
+  return {
+    outcome: "single",
+    hitProbability,
+    defenseRating,
+    pitcherFatigue,
+    effectiveControl,
+    effectiveStuff
+  };
 }
 
 function scoreRunner(
@@ -178,13 +259,33 @@ function simulateHalfInning(
   const pitchingSide = half === "top" ? "B" : "A";
   let batterIndex = battingSide === "A" ? state.batterIndexA : state.batterIndexB;
   const pitcherStats = getStats(state.stats, pitchingSide, pitchingTeam.pitcher);
+  const defenseRating = averageFielding(pitchingTeam);
+  let halfRuns = 0;
 
   while (outs < 3) {
     const batter = battingTeam.hitters[batterIndex % battingTeam.hitters.length];
     const batterStats = getStats(state.stats, battingSide, batter);
     const batterKey = statKey(battingSide, batter.id);
-    const outcome = resolvePlateAppearance(batter, pitchingTeam.pitcher, rng);
+    const battersFaced =
+      pitchingSide === "A" ? state.pitcherBattersFacedA : state.pitcherBattersFacedB;
+    const beforeScoreA = state.scoreA;
+    const beforeScoreB = state.scoreB;
+    const beforeLeader = leader(state.scoreA, state.scoreB);
+    const resolution = resolvePlateAppearance(
+      batter,
+      pitchingTeam.pitcher,
+      defenseRating,
+      battersFaced,
+      rng
+    );
+    const outcome = resolution.outcome;
     batterIndex += 1;
+    pitcherStats.battersFaced += 1;
+    if (pitchingSide === "A") {
+      state.pitcherBattersFacedA += 1;
+    } else {
+      state.pitcherBattersFacedB += 1;
+    }
 
     let runsScored = 0;
     if (outcome === "out") {
@@ -200,22 +301,62 @@ function simulateHalfInning(
         batterStats.homeRuns += 1;
       }
       runsScored = advanceBases(outcome, bases, batterKey, state, battingSide);
+      halfRuns += runsScored;
       batterStats.rbi += runsScored;
       pitcherStats.runsAllowed += runsScored;
     }
 
     if (includeLog) {
+      const afterLeader = leader(state.scoreA, state.scoreB);
+      const scoringText =
+        runsScored > 0
+          ? `${battingTeam.name}の${batter.name}が${outcomeText(outcome)}で${runsScored}点`
+          : `${battingTeam.name}の${batter.name}は${outcomeText(outcome)}`;
+      const swingText =
+        runsScored > 0 && beforeLeader !== afterLeader
+          ? afterLeader === "tie"
+            ? `${scoringText}。試合は同点。`
+            : `${scoringText}。${battingTeam.name}が流れを変えた。`
+          : scoringText;
+
       state.log.push({
         inning,
         half,
         battingTeam: battingTeam.name,
+        pitchingTeam: pitchingTeam.name,
         batter: batter.name,
+        pitcher: pitchingTeam.pitcher.name,
         outcome,
         runsScored,
         scoreA: state.scoreA,
-        scoreB: state.scoreB
+        scoreB: state.scoreB,
+        hitProbability: Number(resolution.hitProbability.toFixed(3)),
+        defenseRating: Number(resolution.defenseRating.toFixed(1)),
+        pitcherFatigue: Number(resolution.pitcherFatigue.toFixed(1)),
+        description: swingText
       });
+
+      if (runsScored > 0) {
+        state.keyMoments.push({
+          inning,
+          half,
+          text: `${inning}回${halfLabel(half)} ${swingText} (${beforeScoreA}-${beforeScoreB} -> ${state.scoreA}-${state.scoreB})`,
+          scoreA: state.scoreA,
+          scoreB: state.scoreB
+        });
+      }
     }
+
+    if (inning === 9 && half === "bottom" && state.scoreB > state.scoreA) {
+      break;
+    }
+  }
+
+  const line = state.lineScore[inning - 1];
+  if (half === "top") {
+    line.top = halfRuns;
+  } else {
+    line.bottom = halfRuns;
   }
 
   if (battingSide === "A") {
@@ -289,8 +430,16 @@ export const baseballEngine: SportEngine<BaseballTeam> = {
       scoreB: 0,
       batterIndexA: 0,
       batterIndexB: 0,
+      pitcherBattersFacedA: 0,
+      pitcherBattersFacedB: 0,
       stats: initializeStats(teamA, teamB),
-      log: []
+      log: [],
+      lineScore: Array.from({ length: 9 }, (_, index) => ({
+        inning: index + 1,
+        top: 0,
+        bottom: null
+      })),
+      keyMoments: []
     };
 
     for (let inning = 1; inning <= 9; inning += 1) {
@@ -314,7 +463,9 @@ export const baseballEngine: SportEngine<BaseballTeam> = {
       winner,
       playerStats,
       mvp,
-      log: options.includeLog ? state.log : undefined
+      log: options.includeLog ? state.log : undefined,
+      lineScore: state.lineScore,
+      keyMoments: options.includeLog ? state.keyMoments : undefined
     };
   },
 
@@ -327,12 +478,17 @@ export const baseballEngine: SportEngine<BaseballTeam> = {
     let totalScoreB = 0;
     const mvpAwards = new Map<string, MVPResult & { awards: number; totalScore: number }>();
     const mvps: MVPResult[] = [];
+    let sampleMatch: MatchResult | undefined;
 
     for (let index = 0; index < games; index += 1) {
       const match = this.simulateMatch(teamA, teamB, {
         seed: deriveSeed(options.seed, `game-${index + 1}`),
-        includeLog: false
+        includeLog: index === 0
       });
+
+      if (index === 0) {
+        sampleMatch = match;
+      }
 
       totalScoreA += match.scoreA;
       totalScoreB += match.scoreB;
@@ -371,6 +527,7 @@ export const baseballEngine: SportEngine<BaseballTeam> = {
       averageScoreA: Number((totalScoreA / games).toFixed(2)),
       averageScoreB: Number((totalScoreB / games).toFixed(2)),
       mvps,
+      sampleMatch,
       overallMvp: overall
         ? {
             playerId: overall.playerId,

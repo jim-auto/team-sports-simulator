@@ -8,7 +8,7 @@ import {
 } from "@/lib/engine/baseball/playerPool";
 import { baseballEngine } from "@/lib/engine/baseball/baseballEngine";
 import { createRandomBaseballTeam } from "@/lib/engine/baseball/randomTeam";
-import type { PlayerEra } from "@/lib/models/player";
+import type { BaseballHitter, BaseballPitcher, PlayerEra } from "@/lib/models/player";
 import type { BaseballTeam } from "@/lib/models/team";
 import type { MatchResult, SeriesResult } from "@/lib/models/result";
 
@@ -21,6 +21,12 @@ interface TeamFilters {
   era: PlayerEra | "all";
   sourceTeam: string | "all";
 }
+
+type SelectedPlayer = {
+  player: BaseballHitter | BaseballPitcher;
+  team: BaseballTeam;
+  teamSide: "A" | "B";
+};
 
 const initialTeamA = createRandomBaseballTeam({
   seed: "initial-a",
@@ -54,10 +60,18 @@ function outcomeLabel(outcome: string): string {
   return "OUT";
 }
 
+function avatarSrc(player: BaseballHitter | BaseballPitcher): string {
+  return `${basePath}/avatars/${player.imageId ?? "avatar-1"}.svg`;
+}
+
+function isPitcher(player: BaseballHitter | BaseballPitcher): player is BaseballPitcher {
+  return player.role === "pitcher";
+}
+
 function updateHitter(
   team: BaseballTeam,
   index: number,
-  field: "name" | "contact" | "power",
+  field: "name" | "contact" | "power" | "fielding",
   value: string
 ): BaseballTeam {
   return {
@@ -72,18 +86,22 @@ function updateHitter(
 
 function TeamEditor({
   label,
+  teamSide,
   team,
   filters,
   onTeamChange,
   onFiltersChange,
-  onRandomize
+  onRandomize,
+  onPlayerSelect
 }: {
   label: string;
+  teamSide: "A" | "B";
   team: BaseballTeam;
   filters: TeamFilters;
   onTeamChange: (team: BaseballTeam) => void;
   onFiltersChange: (filters: TeamFilters) => void;
   onRandomize: () => void;
+  onPlayerSelect: (selection: SelectedPlayer) => void;
 }) {
   return (
     <section className="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
@@ -138,15 +156,17 @@ function TeamEditor({
       </div>
 
       <div className="mt-4 overflow-x-auto">
-        <table className="min-w-[680px] w-full border-collapse text-sm">
+        <table className="min-w-[820px] w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
               <th className="py-2 pr-2">#</th>
               <th className="py-2 pr-2">打者</th>
               <th className="py-2 pr-2">contact</th>
               <th className="py-2 pr-2">power</th>
+              <th className="py-2 pr-2">fielding</th>
               <th className="py-2 pr-2">era</th>
-              <th className="py-2">source</th>
+              <th className="py-2 pr-2">source</th>
+              <th className="py-2">詳細</th>
             </tr>
           </thead>
           <tbody>
@@ -154,13 +174,22 @@ function TeamEditor({
               <tr key={`${hitter.id}-${index}`} className="border-b border-slate-100">
                 <td className="py-2 pr-2 font-medium text-slate-500">{index + 1}</td>
                 <td className="py-2 pr-2">
-                  <input
-                    value={hitter.name}
-                    onChange={(event) =>
-                      onTeamChange(updateHitter(team, index, "name", event.target.value))
-                    }
-                    className="w-full min-w-[150px] rounded-md border border-slate-300 px-2 py-1 outline-none focus:border-emerald-600"
-                  />
+                  <div className="flex min-w-[210px] items-center gap-2">
+                    <Image
+                      src={avatarSrc(hitter)}
+                      alt={`${hitter.name} portrait`}
+                      width={34}
+                      height={34}
+                      className="h-[34px] w-[34px] rounded-md border border-slate-200 bg-slate-100"
+                    />
+                    <input
+                      value={hitter.name}
+                      onChange={(event) =>
+                        onTeamChange(updateHitter(team, index, "name", event.target.value))
+                      }
+                      className="w-full min-w-[150px] rounded-md border border-slate-300 px-2 py-1 outline-none focus:border-emerald-600"
+                    />
+                  </div>
                 </td>
                 <td className="py-2 pr-2">
                   <input
@@ -186,29 +215,59 @@ function TeamEditor({
                     className="w-20 rounded-md border border-slate-300 px-2 py-1 outline-none focus:border-emerald-600"
                   />
                 </td>
+                <td className="py-2 pr-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={hitter.fielding}
+                    onChange={(event) =>
+                      onTeamChange(updateHitter(team, index, "fielding", event.target.value))
+                    }
+                    className="w-20 rounded-md border border-slate-300 px-2 py-1 outline-none focus:border-emerald-600"
+                  />
+                </td>
                 <td className="py-2 pr-2 text-slate-600">{hitter.era}</td>
-                <td className="py-2 text-slate-600">{hitter.sourceTeam}</td>
+                <td className="py-2 pr-2 text-slate-600">{hitter.sourceTeam}</td>
+                <td className="py-2">
+                  <a
+                    href="#player-detail"
+                    onClick={() => onPlayerSelect({ player: hitter, team, teamSide })}
+                    className="font-semibold text-emerald-700 hover:text-emerald-900"
+                  >
+                    詳細
+                  </a>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-[1fr_120px_120px]">
+      <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-[1fr_120px_120px_120px_70px]">
         <div>
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             投手
           </label>
-          <input
-            value={team.pitcher.name}
-            onChange={(event) =>
-              onTeamChange({
-                ...team,
-                pitcher: { ...team.pitcher, name: event.target.value }
-              })
-            }
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
-          />
+          <div className="mt-1 flex items-center gap-2">
+            <Image
+              src={avatarSrc(team.pitcher)}
+              alt={`${team.pitcher.name} portrait`}
+              width={38}
+              height={38}
+              className="h-[38px] w-[38px] rounded-md border border-slate-200 bg-slate-100"
+            />
+            <input
+              value={team.pitcher.name}
+              onChange={(event) =>
+                onTeamChange({
+                  ...team,
+                  pitcher: { ...team.pitcher, name: event.target.value }
+                })
+              }
+              className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
+            />
+          </div>
         </div>
         <div>
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -251,6 +310,309 @@ function TeamEditor({
             }
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
           />
+        </div>
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            stamina
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={team.pitcher.stamina}
+            onChange={(event) =>
+              onTeamChange({
+                ...team,
+                pitcher: {
+                  ...team.pitcher,
+                  stamina: clampRating(Number(event.target.value))
+                }
+              })
+            }
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-600"
+          />
+        </div>
+        <div className="flex items-end">
+          <a
+            href="#player-detail"
+            onClick={() => onPlayerSelect({ player: team.pitcher, team, teamSide })}
+            className="mb-2 font-semibold text-emerald-700 hover:text-emerald-900"
+          >
+            詳細
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RatingBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium text-slate-700">{label}</span>
+        <span className="font-semibold text-slate-950">{value}</span>
+      </div>
+      <div className="mt-1 h-2 rounded-full bg-slate-200">
+        <div
+          className="h-2 rounded-full bg-emerald-700"
+          style={{ width: `${clampRating(value)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AbilityGuide() {
+  return (
+    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-xl font-bold">能力モデル</h2>
+          <p className="text-sm text-slate-600">
+            現在のMVPでは、打撃・投球・守備を最小限の能力値で試合結果に反映しています。
+          </p>
+        </div>
+        <div className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+          0-100評価 / seed指定で再現可能
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">contact</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            バットに当てる力。相手投手の control と比べてヒット確率を決めます。
+          </p>
+        </div>
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">power</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            長打力。相手投手の stuff と比べて二塁打・本塁打の出やすさを決めます。
+          </p>
+        </div>
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">fielding</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            守備力。守備側9人の平均値が高いほど、相手のヒット確率を少し下げます。
+          </p>
+        </div>
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">control</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            制球力。打者の contact に対抗し、アウトを取りやすくします。
+          </p>
+        </div>
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">stuff</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            球威・決め球。打者の power に対抗し、長打を抑えます。
+          </p>
+        </div>
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">stamina</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            スタミナ。打者を多く相手にすると疲労し、control と stuff が徐々に落ちます。
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) {
+  if (!selection) {
+    return (
+      <section
+        id="player-detail"
+        className="rounded-md border border-dashed border-slate-300 bg-white p-5 text-slate-500"
+      >
+        選手の「詳細」を押すと、画像・所属履歴・能力内訳が表示されます。
+      </section>
+    );
+  }
+
+  const { player, team, teamSide } = selection;
+  const activeStint = player.teamHistory?.[0];
+  const roleLabel = isPitcher(player) ? "投手" : "打者";
+
+  return (
+    <section id="player-detail" className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+      <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+        <div>
+          <Image
+            src={avatarSrc(player)}
+            alt={`${player.name} portrait`}
+            width={220}
+            height={220}
+            className="h-[220px] w-[220px] rounded-md border border-slate-200 bg-slate-100"
+          />
+        </div>
+        <div>
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+                Team {teamSide} / {roleLabel}
+              </p>
+              <h2 className="text-2xl font-bold">{player.name}</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                現在の起用: {team.name} / 能力基準: {player.sourceTeam} {player.era}
+              </p>
+            </div>
+            {activeStint && (
+              <div className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+                {activeStint.statLine}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {isPitcher(player) ? (
+              <>
+                <RatingBar label="control" value={player.control} />
+                <RatingBar label="stuff" value={player.stuff} />
+                <RatingBar label="stamina" value={player.stamina} />
+              </>
+            ) : (
+              <>
+                <RatingBar label="contact" value={player.contact} />
+                <RatingBar label="power" value={player.power} />
+                <RatingBar label="fielding" value={player.fielding} />
+              </>
+            )}
+          </div>
+
+          {player.teamHistory && player.teamHistory.length > 0 && (
+            <div className="mt-5 overflow-x-auto">
+              <h3 className="font-semibold">所属履歴と能力の基準</h3>
+              <table className="mt-2 min-w-[620px] w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <th className="py-2 pr-3">era</th>
+                    <th className="py-2 pr-3">team</th>
+                    <th className="py-2 pr-3">games</th>
+                    <th className="py-2 pr-3">stat line</th>
+                    <th className="py-2">note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {player.teamHistory.map((stint, index) => (
+                    <tr key={`${stint.teamName}-${stint.era}-${index}`} className="border-b border-slate-100">
+                      <td className="py-2 pr-3">{stint.era}</td>
+                      <td className="py-2 pr-3 font-medium">{stint.teamName}</td>
+                      <td className="py-2 pr-3">{stint.games}</td>
+                      <td className="py-2 pr-3">{stint.statLine}</td>
+                      <td className="py-2 text-slate-600">{stint.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function GameFlowPanel({ match }: { match?: MatchResult }) {
+  if (!match) return null;
+
+  const scoringLog = match.log?.filter((entry) => entry.runsScored > 0) ?? [];
+
+  return (
+    <div className="mt-5 grid gap-4 xl:grid-cols-[420px_1fr]">
+      {match.lineScore && (
+        <div>
+          <h3 className="font-semibold">イニング別スコア</h3>
+          <div className="mt-2 overflow-x-auto rounded-md border border-slate-200">
+            <table className="min-w-[390px] w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-2 py-2 text-left">Team</th>
+                  {match.lineScore.map((line) => (
+                    <th key={line.inning} className="px-2 py-2 text-center">
+                      {line.inning}
+                    </th>
+                  ))}
+                  <th className="px-2 py-2 text-center">R</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-slate-100">
+                  <td className="px-2 py-2 font-medium">{match.teamA}</td>
+                  {match.lineScore.map((line) => (
+                    <td key={line.inning} className="px-2 py-2 text-center">
+                      {line.top}
+                    </td>
+                  ))}
+                  <td className="px-2 py-2 text-center font-bold">{match.scoreA}</td>
+                </tr>
+                <tr>
+                  <td className="px-2 py-2 font-medium">{match.teamB}</td>
+                  {match.lineScore.map((line) => (
+                    <td key={line.inning} className="px-2 py-2 text-center">
+                      {line.bottom ?? "-"}
+                    </td>
+                  ))}
+                  <td className="px-2 py-2 text-center font-bold">{match.scoreB}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h3 className="font-semibold">試合展開</h3>
+        <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-slate-200">
+          {(match.keyMoments && match.keyMoments.length > 0 ? match.keyMoments : []).map((moment) => (
+            <div
+              key={`${moment.inning}-${moment.half}-${moment.text}`}
+              className="border-b border-slate-100 px-3 py-2 text-sm last:border-b-0"
+            >
+              {moment.text}
+            </div>
+          ))}
+          {(!match.keyMoments || match.keyMoments.length === 0) &&
+            scoringLog.map((entry, index) => (
+              <div
+                key={`${entry.inning}-${entry.half}-${index}`}
+                className="border-b border-slate-100 px-3 py-2 text-sm last:border-b-0"
+              >
+                {entry.description}
+              </div>
+            ))}
+          {(!match.keyMoments || match.keyMoments.length === 0) && scoringLog.length === 0 && (
+            <div className="px-3 py-2 text-sm text-slate-500">大きな得点場面はありませんでした。</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoadmapPanel() {
+  return (
+    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+      <h2 className="text-xl font-bold">長期ロードマップ</h2>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">詳細能力</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            打撃、走塁、守備、肩、制球、球威、変化、スタミナなどへ段階的に分解します。
+          </p>
+        </div>
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">実シーズン校正</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            実在シーズンの得点、失点、勝率、打率、本塁打、防御率をテストデータにして能力を調整します。
+          </p>
+        </div>
+        <div className="rounded-md border border-slate-200 p-3">
+          <h3 className="font-semibold">検証方法</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            同じカードを多数回シミュレーションし、実成績との差分が小さくなるように係数をチューニングします。
+          </p>
         </div>
       </div>
     </section>
@@ -304,6 +666,7 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
             <div className="text-sm text-slate-600">9回終了時点の同点</div>
           </div>
         </div>
+        <GameFlowPanel match={result.sampleMatch} />
       </section>
     );
   }
@@ -336,14 +699,15 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
           <div className="text-4xl font-bold">{result.scoreB}</div>
         </div>
       </div>
+      <GameFlowPanel match={result} />
       {result.log && result.log.length > 0 && (
         <div className="mt-5">
-          <h3 className="font-semibold">Game Log</h3>
+          <h3 className="font-semibold">打席ログ</h3>
           <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-slate-200">
             {result.log.slice(-40).map((entry, index) => (
               <div
                 key={`${entry.inning}-${entry.half}-${index}`}
-                className="grid grid-cols-[70px_1fr_54px_70px] gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-b-0"
+                className="grid grid-cols-[70px_1fr_54px_70px_120px] gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-b-0"
               >
                 <span className="font-medium text-slate-500">
                   {entry.inning}
@@ -355,6 +719,9 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
                 <span className="font-semibold text-emerald-700">{outcomeLabel(entry.outcome)}</span>
                 <span className="text-right text-slate-600">
                   {entry.scoreA}-{entry.scoreB}
+                </span>
+                <span className="text-right text-slate-500">
+                  hit {(entry.hitProbability * 100).toFixed(0)}% / 疲労 {entry.pitcherFatigue}
                 </span>
               </div>
             ))}
@@ -380,6 +747,7 @@ export default function Home() {
     sourceTeam: "Osaka Waves"
   });
   const [response, setResponse] = useState<SimulationResponse | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -522,14 +890,18 @@ export default function Home() {
       </section>
 
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 md:px-6">
+        <AbilityGuide />
         <ResultPanel response={response} />
+        <PlayerDetailPanel selection={selectedPlayer} />
         <div className="grid gap-5 xl:grid-cols-2">
           <TeamEditor
             label="Team A"
+            teamSide="A"
             team={teamA}
             filters={filtersA}
             onTeamChange={setTeamA}
             onFiltersChange={setFiltersA}
+            onPlayerSelect={setSelectedPlayer}
             onRandomize={() => {
               try {
                 randomizeTeam("A");
@@ -540,10 +912,12 @@ export default function Home() {
           />
           <TeamEditor
             label="Team B"
+            teamSide="B"
             team={teamB}
             filters={filtersB}
             onTeamChange={setTeamB}
             onFiltersChange={setFiltersB}
+            onPlayerSelect={setSelectedPlayer}
             onRandomize={() => {
               try {
                 randomizeTeam("B");
@@ -553,6 +927,7 @@ export default function Home() {
             }}
           />
         </div>
+        <RoadmapPanel />
       </div>
     </main>
   );

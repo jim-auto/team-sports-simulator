@@ -53,6 +53,7 @@ function playerStats(
       rbi: 0,
       outs: 0,
       pitchingOuts: 0,
+      battersFaced: 0,
       runsAllowed: goalsAgainst,
       mvpScore: Number(mvpScore.toFixed(2))
     };

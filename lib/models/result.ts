@@ -18,6 +18,7 @@ export interface PlayerMatchStats {
   rbi: number;
   outs: number;
   pitchingOuts: number;
+  battersFaced: number;
   runsAllowed: number;
   mvpScore: number;
 }
@@ -36,9 +37,29 @@ export interface BaseballLogEntry {
   inning: number;
   half: "top" | "bottom";
   battingTeam: string;
+  pitchingTeam: string;
   batter: string;
+  pitcher: string;
   outcome: PlateAppearanceOutcome;
   runsScored: number;
+  scoreA: number;
+  scoreB: number;
+  hitProbability: number;
+  defenseRating: number;
+  pitcherFatigue: number;
+  description: string;
+}
+
+export interface BaseballInningScore {
+  inning: number;
+  top: number;
+  bottom: number | null;
+}
+
+export interface BaseballKeyMoment {
+  inning: number;
+  half: "top" | "bottom";
+  text: string;
   scoreA: number;
   scoreB: number;
 }
@@ -53,6 +74,8 @@ export interface MatchResult {
   playerStats: PlayerMatchStats[];
   mvp?: MVPResult;
   log?: BaseballLogEntry[];
+  lineScore?: BaseballInningScore[];
+  keyMoments?: BaseballKeyMoment[];
 }
 
 export interface SeriesResult {
@@ -69,4 +92,5 @@ export interface SeriesResult {
   averageScoreB: number;
   mvps: MVPResult[];
   overallMvp?: MVPResult;
+  sampleMatch?: MatchResult;
 }
