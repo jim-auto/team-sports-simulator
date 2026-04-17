@@ -9,42 +9,42 @@ export const BASEBALL_SOURCE_TEAMS = [
   "Fukuoka Suns"
 ] as const;
 
-const FIRST_NAMES = [
-  "Riku",
-  "Haruto",
-  "Sota",
-  "Ren",
-  "Itsuki",
-  "Kaito",
-  "Daichi",
-  "Minato",
-  "Yuto",
-  "Akira",
-  "Shun",
-  "Toma",
-  "Reo",
-  "Naoki",
-  "Hayate",
-  "Kei"
+const GIVEN_NAMES = [
+  "陸",
+  "陽翔",
+  "颯太",
+  "蓮",
+  "樹",
+  "海斗",
+  "大地",
+  "湊",
+  "悠斗",
+  "晃",
+  "駿",
+  "冬真",
+  "玲央",
+  "直樹",
+  "隼",
+  "圭"
 ];
 
-const LAST_NAMES = [
-  "Sato",
-  "Suzuki",
-  "Takahashi",
-  "Tanaka",
-  "Watanabe",
-  "Ito",
-  "Yamamoto",
-  "Nakamura",
-  "Kobayashi",
-  "Kato",
-  "Yoshida",
-  "Yamada",
-  "Sasaki",
-  "Yamaguchi",
-  "Matsumoto",
-  "Inoue"
+const FAMILY_NAMES = [
+  "佐藤",
+  "鈴木",
+  "高橋",
+  "田中",
+  "渡辺",
+  "伊藤",
+  "山本",
+  "中村",
+  "小林",
+  "加藤",
+  "吉田",
+  "山田",
+  "佐々木",
+  "山口",
+  "松本",
+  "井上"
 ];
 
 function clamp(value: number, min: number, max: number): number {
@@ -83,8 +83,8 @@ export function getBaseballPlayerPool(): {
         const key = `${era}-${sourceTeam}-h-${slot}`;
         hitters.push({
           id: `bb-h-${era}-${teamSlug(sourceTeam)}-${slot + 1}`,
-          name: `${FIRST_NAMES[nameIndex % FIRST_NAMES.length]} ${
-            LAST_NAMES[(nameIndex * 3) % LAST_NAMES.length]
+          name: `${FAMILY_NAMES[(nameIndex * 3) % FAMILY_NAMES.length]} ${
+            GIVEN_NAMES[nameIndex % GIVEN_NAMES.length]
           }`,
           sport: "baseball",
           role: "hitter",
@@ -100,8 +100,8 @@ export function getBaseballPlayerPool(): {
         const key = `${era}-${sourceTeam}-p-${slot}`;
         pitchers.push({
           id: `bb-p-${era}-${teamSlug(sourceTeam)}-${slot + 1}`,
-          name: `${FIRST_NAMES[(nameIndex * 2) % FIRST_NAMES.length]} ${
-            LAST_NAMES[(nameIndex * 5) % LAST_NAMES.length]
+          name: `${FAMILY_NAMES[(nameIndex * 5) % FAMILY_NAMES.length]} ${
+            GIVEN_NAMES[(nameIndex * 2) % GIVEN_NAMES.length]
           }`,
           sport: "baseball",
           role: "pitcher",
