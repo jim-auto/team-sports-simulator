@@ -268,6 +268,7 @@ export default function SeasonPage() {
               </p>
               <Link
                 href="/"
+                prefetch={false}
                 className="rounded-md border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700 hover:border-emerald-700"
               >
                 対戦ページへ

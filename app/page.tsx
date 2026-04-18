@@ -966,6 +966,7 @@ export default function Home() {
               </button>
               <Link
                 href="/season"
+                prefetch={false}
                 className="rounded-md bg-emerald-700 px-5 py-2 font-semibold text-white hover:bg-emerald-800"
               >
                 1年シーズンへ
