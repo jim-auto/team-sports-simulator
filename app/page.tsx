@@ -131,7 +131,7 @@ function TeamEditor({
   const pitchingStaff = team.pitchingStaff?.length ? team.pitchingStaff : [team.pitcher];
 
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-4 shadow-panel">
+    <section className="min-w-0 rounded-md border border-slate-200 bg-white p-4 shadow-panel">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0 flex-1">
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -426,7 +426,7 @@ function RatingBar({ label, value }: { label: string; value: number }) {
 
 function AbilityGuide() {
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+    <section className="min-w-0 rounded-md border border-slate-200 bg-white p-5 shadow-panel">
       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div>
           <h2 className="text-xl font-bold">能力モデル</h2>
@@ -490,7 +490,7 @@ function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) 
     return (
       <section
         id="player-detail"
-        className="rounded-md border border-dashed border-slate-300 bg-white p-5 text-slate-500"
+        className="min-w-0 rounded-md border border-dashed border-slate-300 bg-white p-5 text-slate-500"
       >
         選手の「詳細」を押すと、画像・所属履歴・能力内訳が表示されます。
       </section>
@@ -502,7 +502,7 @@ function PlayerDetailPanel({ selection }: { selection: SelectedPlayer | null }) 
   const roleLabel = isPitcher(player) ? `投手 / ${player.pitchingRole}` : `打者 / ${player.position}`;
 
   return (
-    <section id="player-detail" className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+    <section id="player-detail" className="min-w-0 rounded-md border border-slate-200 bg-white p-5 shadow-panel">
       <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
         <div>
           <Image
@@ -688,7 +688,7 @@ function GameFlowPanel({ match }: { match?: MatchResult }) {
 
 function RoadmapPanel() {
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+    <section className="min-w-0 rounded-md border border-slate-200 bg-white p-5 shadow-panel">
       <h2 className="text-xl font-bold">長期ロードマップ</h2>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <div className="rounded-md border border-slate-200 p-3">
@@ -717,7 +717,7 @@ function RoadmapPanel() {
 function ResultPanel({ response }: { response: SimulationResponse | null }) {
   if (!response) {
     return (
-      <section className="rounded-md border border-dashed border-slate-300 bg-white p-5 text-slate-500">
+      <section className="min-w-0 rounded-md border border-dashed border-slate-300 bg-white p-5 text-slate-500">
         結果はここに表示されます。
       </section>
     );
@@ -726,7 +726,7 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
   if (response.mode === "series") {
     const result = response.result;
     return (
-      <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+      <section className="min-w-0 rounded-md border border-slate-200 bg-white p-5 shadow-panel">
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-xl font-bold">Series Result</h2>
@@ -771,7 +771,7 @@ function ResultPanel({ response }: { response: SimulationResponse | null }) {
     result.winner === "A" ? result.teamA : result.winner === "B" ? result.teamB : "Draw";
 
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
+    <section className="min-w-0 rounded-md border border-slate-200 bg-white p-5 shadow-panel">
       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div>
           <h2 className="text-xl font-bold">Match Result</h2>
@@ -990,11 +990,11 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 md:px-6">
+      <div className="mx-auto grid min-w-0 max-w-7xl gap-5 px-4 py-6 md:px-6">
         <AbilityGuide />
         <ResultPanel response={response} />
         <PlayerDetailPanel selection={selectedPlayer} />
-        <div className="grid gap-5 xl:grid-cols-2">
+        <div className="grid min-w-0 gap-5 xl:grid-cols-2">
           <TeamEditor
             label="Team A"
             teamSide="A"
